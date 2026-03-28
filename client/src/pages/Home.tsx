@@ -1,6 +1,7 @@
 /**
  * Design: Koparion Reborn — Green/Orange Book Shop
  * Layout: Hero → Categories → Featured → Popular → Latest → Promo
+ * Toast: error notifications when data fetch fails
  */
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
@@ -8,6 +9,7 @@ import { api } from "@/lib/api";
 import BookCard from "@/components/BookCard";
 import { ChevronRight, Sparkles, TrendingUp, Clock, BookOpen, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-dhg4wq4HwAVcainEMTnvn7.webp";
 const PROMO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/promo-banner-9UxgNfesR6ZAXkdruvFDYS.webp";
@@ -39,12 +41,23 @@ export default function Home() {
   const [latest, setLatest] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [stats, setStats] = useState({ novels: 0, chapters: 0, views: 0, users: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getNovels({ featured: "true", limit: "6" }).then(d => setFeatured(d.novels)).catch(() => {});
-    api.getNovels({ sort: "popular", limit: "12" }).then(d => setPopular(d.novels)).catch(() => {});
-    api.getNovels({ sort: "newest", limit: "12" }).then(d => { setLatest(d.novels); setStats(s => ({ ...s, novels: d.total })); }).catch(() => {});
-    api.getCategories().then(setCategories).catch(() => {});
+    let errorCount = 0;
+    const onError = () => {
+      errorCount++;
+      if (errorCount === 1) {
+        toast.error("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+      }
+    };
+
+    Promise.allSettled([
+      api.getNovels({ featured: "true", limit: "6" }).then(d => setFeatured(d.novels)).catch(onError),
+      api.getNovels({ sort: "popular", limit: "12" }).then(d => setPopular(d.novels)).catch(onError),
+      api.getNovels({ sort: "newest", limit: "12" }).then(d => { setLatest(d.novels); setStats(s => ({ ...s, novels: d.total })); }).catch(onError),
+      api.getCategories().then(setCategories).catch(onError),
+    ]).finally(() => setLoading(false));
   }, []);
 
   return (
@@ -163,7 +176,8 @@ export default function Home() {
           <SectionHeader title="นิยายมาแรง" icon={<TrendingUp className="w-5 h-5" />} href="/genre/popular" color="oklch(0.72 0.16 60)" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {popular.length > 0 ? popular.map((n: any) => <BookCard key={n.id} novel={n} />) : (
-              Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />)
+              loading ? Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />) :
+              <p className="col-span-full text-center text-muted-foreground py-8">ยังไม่มีนิยาย</p>
             )}
           </div>
         </div>
@@ -175,7 +189,8 @@ export default function Home() {
           <SectionHeader title="อัปเดตล่าสุด" icon={<Clock className="w-5 h-5" />} href="/genre/newest" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {latest.length > 0 ? latest.map((n: any) => <BookCard key={n.id} novel={n} />) : (
-              Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />)
+              loading ? Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />) :
+              <p className="col-span-full text-center text-muted-foreground py-8">ยังไม่มีนิยาย</p>
             )}
           </div>
         </div>

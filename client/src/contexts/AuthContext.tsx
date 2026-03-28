@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { api, setToken, clearToken, getStoredUser, setStoredUser } from "@/lib/api";
+import { toast } from "sonner";
 
 interface User {
   id: number;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   const refreshUser = async () => {
+    setLoading(true);
     try {
       const data = await api.me();
       setUser(data);
@@ -37,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
       clearToken();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,21 +51,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (loginStr: string, password: string) => {
-    const data = await api.login({ login: loginStr, password });
-    setToken(data.token);
-    setUser(data.user);
-    setStoredUser(data.user);
+    setLoading(true);
+    try {
+      const data = await api.login({ login: loginStr, password });
+      setToken(data.token);
+      setUser(data.user);
+      setStoredUser(data.user);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const register = async (regData: any) => {
-    const data = await api.register(regData);
-    return data.memberId;
+    setLoading(true);
+    try {
+      const data = await api.register(regData);
+      return data.memberId;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
     clearToken();
     setUser(null);
     localStorage.removeItem("niyaifree_user");
+    toast.success("ออกจากระบบแล้ว");
   };
 
   return (

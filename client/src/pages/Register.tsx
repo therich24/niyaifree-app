@@ -19,11 +19,12 @@ export default function Register() {
     if (form.password !== form.confirmPassword) { toast.error("รหัสผ่านไม่ตรงกัน"); return; }
     if (form.password.length < 6) { toast.error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
     setLoading(true);
+    const toastId = toast.loading("กำลังสมัครสมาชิก...");
     try {
       const memberId = await register(form);
-      toast.success(`สมัครสำเร็จ! รหัสสมาชิก: ${memberId}`);
+      toast.success(`สมัครสำเร็จ! รหัสสมาชิก: ${memberId}`, { id: toastId, duration: 5000 });
       setLocation("/login");
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) { toast.error(err.message || "สมัครไม่สำเร็จ", { id: toastId }); }
     setLoading(false);
   };
 

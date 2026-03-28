@@ -1,9 +1,14 @@
+/**
+ * Design: Koparion Reborn — Search page
+ * Toast: error when search fails, warning for empty query, info for result count
+ */
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import BookCard from "@/components/BookCard";
 import { Search, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function SearchPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -18,13 +23,24 @@ export default function SearchPage() {
   }, []);
 
   const doSearch = async (q: string) => {
-    if (!q.trim()) return;
+    if (!q.trim()) {
+      toast.warning("กรุณาพิมพ์คำค้นหา");
+      return;
+    }
     setLoading(true);
     setSearched(true);
     try {
       const data = await api.getNovels({ search: q.trim(), limit: "50" });
       setResults(data.novels);
-    } catch { setResults([]); }
+      if (data.novels.length === 0) {
+        toast.info(`ไม่พบผลลัพธ์สำหรับ "${q.trim()}"`);
+      } else {
+        toast.success(`พบ ${data.novels.length} ผลลัพธ์`);
+      }
+    } catch {
+      setResults([]);
+      toast.error("เกิดข้อผิดพลาดในการค้นหา กรุณาลองใหม่");
+    }
     setLoading(false);
   };
 
@@ -42,8 +58,8 @@ export default function SearchPage() {
               className="flex-1 px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               autoFocus
             />
-            <Button type="submit" className="text-white" style={{ background: "oklch(0.40 0.12 155)" }}>
-              <Search className="w-4 h-4 mr-1" /> ค้นหา
+            <Button type="submit" className="text-white" style={{ background: "oklch(0.40 0.12 155)" }} disabled={loading}>
+              <Search className="w-4 h-4 mr-1" /> {loading ? "กำลังค้นหา..." : "ค้นหา"}
             </Button>
           </form>
         </div>

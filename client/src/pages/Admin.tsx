@@ -94,7 +94,7 @@ export default function Admin() {
 // ===== DASHBOARD =====
 function DashboardTab() {
   const [stats, setStats] = useState<any>(null);
-  useEffect(() => { api.getStats().then(setStats).catch(() => {}); }, []);
+  useEffect(() => { api.getStats().then(setStats).catch(() => toast.error("ไม่สามารถโหลดข้อมูลแดชบอร์ดได้")); }, []);
 
   if (!stats) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
@@ -159,7 +159,7 @@ function NovelsTab() {
   const [editNovel, setEditNovel] = useState<any>(null);
   const [form, setForm] = useState({ title: "", category: "Romance", description: "", coverUrl: "", ageRating: "ทั่วไป", author: "NiYAIFREE", status: "draft" });
 
-  const load = () => api.getNovels({ search, limit: "50" }).then(d => setNovels(d.novels)).catch(() => {});
+  const load = () => api.getNovels({ search, limit: "50" }).then(d => setNovels(d.novels)).catch(() => toast.error("ไม่สามารถโหลดรายการนิยายได้"));
   useEffect(() => { load(); }, [search]);
 
   const handleSave = async () => {
@@ -274,7 +274,7 @@ function NovelsTab() {
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const load = () => api.getUsers({ search }).then(setUsers).catch(() => {});
+  const load = () => api.getUsers({ search }).then(setUsers).catch(() => toast.error("ไม่สามารถโหลดรายการสมาชิกได้"));
   useEffect(() => { load(); }, [search]);
 
   const toggleActive = async (u: any) => {
@@ -347,11 +347,12 @@ function GenerateTab() {
   const handleGenerate = async () => {
     if (!novelId) { toast.error("เลือกนิยายก่อน"); return; }
     setLoading(true);
+    const toastId = toast.loading(`กำลังสร้าง ${numCalls * 3} ตอนด้วย AI... กรุณารอสักครู่`);
     try {
       const res = await api.aiGenerateChapters({ novelId: parseInt(novelId), numCalls, startChapter });
       setResult(res);
-      toast.success(`สร้างสำเร็จ ${res.chaptersCreated} ตอน`);
-    } catch (e: any) { toast.error(e.message); }
+      toast.success(`สร้างสำเร็จ ${res.chaptersCreated} ตอน`, { id: toastId });
+    } catch (e: any) { toast.error(e.message, { id: toastId }); }
     setLoading(false);
   };
 
@@ -414,11 +415,12 @@ function ProofTab() {
 
   const handleProof = async () => {
     setLoading(true);
+    const toastId = toast.loading("กำลังพิสูจน์อักษรด้วย AI... กรุณารอสักครู่");
     try {
       const res = await api.proofread({ novelId: novelId ? parseInt(novelId) : undefined });
       setResult(res);
-      toast.success(`ตรวจสอบแล้ว ${res.processed} ตอน`);
-    } catch (e: any) { toast.error(e.message); }
+      toast.success(`ตรวจสอบแล้ว ${res.processed} ตอน`, { id: toastId });
+    } catch (e: any) { toast.error(e.message, { id: toastId }); }
     setLoading(false);
   };
 
@@ -466,7 +468,7 @@ function ProofTab() {
 function ApiKeysTab() {
   const [keys, setKeys] = useState<any[]>([]);
   const [newKey, setNewKey] = useState("");
-  const load = () => api.getApiKeys().then(setKeys).catch(() => {});
+  const load = () => api.getApiKeys().then(setKeys).catch(() => toast.error("ไม่สามารถโหลด API Keys ได้"));
   useEffect(() => { load(); }, []);
 
   const addKey = async () => {
@@ -525,7 +527,7 @@ function ApiKeysTab() {
 function SettingsTab() {
   const [settings, setSettings] = useState<any[]>([]);
   const [edited, setEdited] = useState<Record<string, string>>({});
-  const load = () => api.getSettings().then(setSettings).catch(() => {});
+  const load = () => api.getSettings().then(setSettings).catch(() => toast.error("ไม่สามารถโหลดการตั้งค่าได้"));
   useEffect(() => { load(); }, []);
 
   const handleSave = async () => {

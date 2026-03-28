@@ -20,12 +20,13 @@ export default function Login() {
     e.preventDefault();
     if (!loginStr || !password) { toast.error("กรุณากรอกข้อมูลให้ครบ"); return; }
     setLoading(true);
+    const toastId = toast.loading("กำลังเข้าสู่ระบบ...");
     try {
       await login(loginStr, password);
-      toast.success("เข้าสู่ระบบสำเร็จ");
+      toast.success("เข้าสู่ระบบสำเร็จ!", { id: toastId });
       setLocation("/");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || "เข้าสู่ระบบไม่สำเร็จ", { id: toastId });
     }
     setLoading(false);
   };

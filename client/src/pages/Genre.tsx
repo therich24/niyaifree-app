@@ -1,5 +1,6 @@
 /**
  * Design: Koparion Reborn — Genre listing page
+ * Toast: error when fetch fails, info when loading more
  */
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
@@ -7,6 +8,7 @@ import { api } from "@/lib/api";
 import BookCard from "@/components/BookCard";
 import { ArrowLeft, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function Genre() {
   const { name } = useParams<{ name: string }>();
@@ -15,6 +17,7 @@ export default function Genre() {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("popular");
   const [offset, setOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const decodedName = decodeURIComponent(name || "");
   const isSpecial = ["popular", "newest", "featured"].includes(decodedName);
@@ -31,16 +34,23 @@ export default function Genre() {
       params.category = decodedName;
       params.sort = sort;
     }
-    api.getNovels(params).then(d => { setNovels(d.novels); setTotal(d.total); }).catch(() => {}).finally(() => setLoading(false));
+    api.getNovels(params)
+      .then(d => { setNovels(d.novels); setTotal(d.total); })
+      .catch(() => toast.error("ไม่สามารถโหลดข้อมูลนิยายได้"))
+      .finally(() => setLoading(false));
   }, [name, sort]);
 
   const loadMore = () => {
+    setLoadingMore(true);
     const newOffset = offset + 24;
     const params: Record<string, string> = { limit: "24", offset: String(newOffset) };
     if (!isSpecial) { params.category = decodedName; params.sort = sort; }
     else if (decodedName === "popular") params.sort = "popular";
     else if (decodedName === "newest") params.sort = "newest";
-    api.getNovels(params).then(d => { setNovels(prev => [...prev, ...d.novels]); setOffset(newOffset); }).catch(() => {});
+    api.getNovels(params)
+      .then(d => { setNovels(prev => [...prev, ...d.novels]); setOffset(newOffset); toast.info(`โหลดเพิ่ม ${d.novels.length} เรื่อง`); })
+      .catch(() => toast.error("ไม่สามารถโหลดเพิ่มได้"))
+      .finally(() => setLoadingMore(false));
   };
 
   const pageTitle = isSpecial
@@ -91,7 +101,9 @@ export default function Genre() {
               </div>
               {novels.length < total && (
                 <div className="text-center mt-8">
-                  <Button variant="outline" onClick={loadMore}>โหลดเพิ่ม</Button>
+                  <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+                  </Button>
                 </div>
               )}
             </>

@@ -27,10 +27,11 @@ export default function NovelDetail() {
 
   const handleBookmark = async () => {
     if (!user) { toast.error("กรุณาเข้าสู่ระบบก่อน"); return; }
+    const toastId = toast.loading("กำลังบันทึกที่คั่น...");
     try {
       await api.addBookmark({ novelId: novel.id, chapterNumber: 1 });
-      toast.success("เพิ่มที่คั่นแล้ว");
-    } catch (e: any) { toast.error(e.message); }
+      toast.success("เพิ่มที่คั่นแล้ว", { id: toastId });
+    } catch (e: any) { toast.error(e.message || "ไม่สามารถบันทึกได้", { id: toastId }); }
   };
 
   if (loading) return (

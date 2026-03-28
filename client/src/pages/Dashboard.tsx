@@ -15,8 +15,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) { setLocation("/login"); return; }
-    api.getReadingHistory().then(setHistory).catch(() => {});
-    api.getBookmarks().then(setBookmarks).catch(() => {});
+    api.getReadingHistory().then(setHistory).catch(() => toast.error("ไม่สามารถโหลดประวัติการอ่านได้"));
+    api.getBookmarks().then(setBookmarks).catch(() => toast.error("ไม่สามารถโหลดที่คั่นได้"));
   }, [user]);
 
   const earnPoints = async (type: string) => {

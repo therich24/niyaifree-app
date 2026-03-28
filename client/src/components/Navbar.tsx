@@ -1,12 +1,14 @@
 /**
  * Design: Koparion Reborn — Forest Green top bar with orange accents
  * Font: Kanit for brand, Sarabun for links
+ * Toast: empty search warning
  */
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, Menu, X, User, LogOut, Settings, Bookmark, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +31,11 @@ export default function Navbar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
+    if (!searchQuery.trim()) {
+      toast.warning("กรุณาพิมพ์คำค้นหา");
+      return;
     }
+    window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
   };
 
   return (

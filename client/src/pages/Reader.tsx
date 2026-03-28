@@ -76,11 +76,12 @@ export default function Reader() {
     };
   }, [user, chapter, progress]);
 
-  const saveBg = (c: string) => { setBgColor(c); localStorage.setItem("reader_bg", c); };
+  const saveBg = (c: string) => { setBgColor(c); localStorage.setItem("reader_bg", c); toast.success("เปลี่ยนสีพื้นหลังแล้ว", { duration: 1500 }); };
   const saveFs = (s: number) => { setFontSize(s); localStorage.setItem("reader_fs", String(s)); };
 
   const goChapter = (num: number) => {
     window.scrollTo(0, 0);
+    toast.info(`กำลังโหลดตอนที่ ${num}...`, { duration: 1500 });
     setLocation(`/read/${novelId}/${num}`);
   };
 
