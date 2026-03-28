@@ -1,9 +1,9 @@
 /*
-  NiYAIFREE BookCard — Noraure/Boake Style
-  Clean white card, hover reveals action buttons, coral sale badge
+  NiYAIFREE BookCard — Koparion Book Shop Style + Coral Red
+  Clean card with cover, hover lift, category tag, view count
 */
 import { Link } from "wouter";
-import { Eye, Heart, BookOpen, Star, Bookmark } from "lucide-react";
+import { Eye, BookOpen, Star, Heart, Bookmark } from "lucide-react";
 import { useState } from "react";
 
 interface BookCardProps {
@@ -30,7 +30,7 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
 
   return (
     <div
-      className="group relative bg-white rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+      className="book-card group relative bg-white rounded-xl overflow-hidden border border-slate-100"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -41,7 +41,7 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
             <img
               src={novel.coverUrl}
               alt={novel.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
             />
           ) : (
@@ -52,15 +52,19 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
             </div>
           )}
 
-          {/* Sale/Status Badge */}
+          {/* Status Badge */}
           {novel.status === "writing" && (
-            <div className="sale-badge bg-amber-500">กำลังเขียน</div>
+            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
+              กำลังเขียน
+            </div>
           )}
           {novel.status === "completed" && (
-            <div className="sale-badge bg-emerald-500">จบแล้ว</div>
+            <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
+              จบแล้ว
+            </div>
           )}
           {novel.isFeatured && (
-            <div className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded z-10">
+            <div className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
               <Star className="w-3 h-3 inline mr-0.5" />แนะนำ
             </div>
           )}
@@ -72,17 +76,17 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
             </div>
           )}
 
-          {/* Hover Action Buttons */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}>
+          {/* Hover Overlay */}
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}>
             <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
-              <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary hover:text-white transition-colors" title="เพิ่มที่คั่น" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                <Bookmark className="w-4 h-4" />
+              <button className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-primary hover:text-white transition-colors" title="ที่คั่น" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Bookmark className="w-3.5 h-3.5" />
               </button>
-              <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary hover:text-white transition-colors" title="ถูกใจ" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                <Heart className="w-4 h-4" />
+              <button className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-primary hover:text-white transition-colors" title="ถูกใจ" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Heart className="w-3.5 h-3.5" />
               </button>
-              <button className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors" title="อ่านเลย">
-                <BookOpen className="w-4 h-4" />
+              <button className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-md hover:bg-primary/80 transition-colors" title="อ่านเลย">
+                <BookOpen className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -95,7 +99,7 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
           </h3>
           <p className="text-xs text-slate-500 mt-1">{novel.author}</p>
 
-          {/* Star Rating */}
+          {/* Stars */}
           <div className="flex items-center gap-0.5 mt-1.5">
             {[1, 2, 3, 4, 5].map(s => (
               <Star key={s} className={`w-3 h-3 ${s <= 4 ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} />
@@ -112,9 +116,9 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
             </span>
           </div>
 
-          {/* Category Tag */}
+          {/* Category */}
           <div className="mt-2">
-            <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full font-medium">
+            <span className="inline-block px-2 py-0.5 bg-primary/5 text-primary text-[10px] rounded-full font-medium">
               {novel.category}
             </span>
           </div>

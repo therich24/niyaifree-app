@@ -1,6 +1,6 @@
 /*
   CEO Dashboard — /ceo
-  Separate login, full overview, revenue, analytics
+  Separate login, full overview — Coral Red Theme
 */
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
@@ -74,13 +74,13 @@ export default function CeoDashboard() {
     toast.success("ออกจากระบบ CEO แล้ว");
   }
 
-  // CEO Login Page
+  // CEO Login Page — Coral Red
   if (!authed) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-amber-500/30">
+            <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
               <Crown className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white font-[Kanit]">CEO Dashboard</h1>
@@ -95,7 +95,7 @@ export default function CeoDashboard() {
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                   placeholder="CEO Username"
                   required
                 />
@@ -106,7 +106,7 @@ export default function CeoDashboard() {
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                   placeholder="Password"
                   required
                 />
@@ -114,7 +114,7 @@ export default function CeoDashboard() {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all shadow-lg shadow-amber-500/25 disabled:opacity-50"
+                className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg disabled:opacity-50"
               >
                 {loginLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ CEO"}
               </button>
@@ -132,11 +132,11 @@ export default function CeoDashboard() {
 
   // CEO Dashboard
   const statCards = [
-    { label: "นิยายทั้งหมด", value: stats?.totalNovels || 0, icon: BookOpen, color: "bg-blue-500" },
-    { label: "สมาชิกทั้งหมด", value: stats?.totalUsers || 0, icon: Users, color: "bg-emerald-500" },
+    { label: "นิยายทั้งหมด", value: stats?.totalNovels || 0, icon: BookOpen, color: "bg-primary" },
+    { label: "สมาชิกทั้งหมด", value: stats?.totalUsers || 0, icon: Users, color: "bg-blue-500" },
     { label: "ยอดอ่านรวม", value: stats?.totalViews || 0, icon: Eye, color: "bg-purple-500" },
     { label: "สมาชิก VIP", value: stats?.vipUsers || 0, icon: Crown, color: "bg-amber-500" },
-    { label: "รายได้เดือนนี้", value: `฿${(stats?.monthlyRevenue || 0).toLocaleString()}`, icon: DollarSign, color: "bg-green-500" },
+    { label: "รายได้เดือนนี้", value: `฿${(stats?.monthlyRevenue || 0).toLocaleString()}`, icon: DollarSign, color: "bg-emerald-500" },
     { label: "Coins ขายแล้ว", value: stats?.totalCoinsSold || 0, icon: Coins, color: "bg-orange-500" },
   ];
 
@@ -150,20 +150,20 @@ export default function CeoDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* CEO Header */}
-      <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+      {/* CEO Header — Coral Red */}
+      <header className="bg-primary text-white">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <Crown className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold font-[Kanit]">CEO Dashboard</h1>
-              <p className="text-xs text-slate-400">NiYAIFREE — {ceoUser?.firstName || ceoUser?.username}</p>
+              <p className="text-xs text-white/70">NiYAIFREE — {ceoUser?.firstName || ceoUser?.username}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a href="/" className="text-sm text-slate-400 hover:text-white transition-colors">ไปหน้าเว็บ</a>
+            <a href="/" className="text-sm text-white/70 hover:text-white transition-colors no-underline">ไปหน้าเว็บ</a>
             <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-sm">
               <LogOut className="w-4 h-4" /> ออกจากระบบ
             </button>
@@ -195,7 +195,6 @@ export default function CeoDashboard() {
       <div className="container py-8">
         {activeTab === "overview" && (
           <div className="space-y-8">
-            {/* Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {statCards.map((card, i) => (
                 <div key={i} className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
@@ -208,7 +207,6 @@ export default function CeoDashboard() {
               ))}
             </div>
 
-            {/* Quick Actions */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
               <h3 className="text-lg font-bold font-[Kanit] mb-4">การดำเนินการด่วน</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -221,7 +219,7 @@ export default function CeoDashboard() {
                   <a
                     key={i}
                     href={action.href}
-                    className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl hover:bg-primary/5 hover:border-primary border border-transparent transition-all no-underline text-slate-700"
+                    className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl hover:bg-primary/5 hover:border-primary/30 border border-transparent transition-all no-underline text-slate-700"
                   >
                     <action.icon className="w-5 h-5 text-primary" />
                     <span className="text-sm font-medium">{action.label}</span>
@@ -230,7 +228,6 @@ export default function CeoDashboard() {
               </div>
             </div>
 
-            {/* Activity Feed */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
               <h3 className="text-lg font-bold font-[Kanit] mb-4">กิจกรรมล่าสุด</h3>
               <div className="space-y-3">
@@ -258,10 +255,10 @@ export default function CeoDashboard() {
         {activeTab === "revenue" && (
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
             <h3 className="text-lg font-bold font-[Kanit] mb-4">รายงานรายได้</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="p-5 bg-emerald-50 rounded-xl border border-emerald-100">
-                <p className="text-sm text-emerald-600 font-medium">รายได้วันนี้</p>
-                <p className="text-3xl font-bold text-emerald-700 mt-1">฿{(stats?.dailyRevenue || 0).toLocaleString()}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-5 bg-primary/5 rounded-xl border border-primary/10">
+                <p className="text-sm text-primary font-medium">รายได้วันนี้</p>
+                <p className="text-3xl font-bold text-primary mt-1">฿{(stats?.dailyRevenue || 0).toLocaleString()}</p>
               </div>
               <div className="p-5 bg-blue-50 rounded-xl border border-blue-100">
                 <p className="text-sm text-blue-600 font-medium">รายได้เดือนนี้</p>
@@ -272,7 +269,7 @@ export default function CeoDashboard() {
                 <p className="text-3xl font-bold text-purple-700 mt-1">฿{(stats?.totalRevenue || 0).toLocaleString()}</p>
               </div>
             </div>
-            <p className="text-sm text-slate-500">ข้อมูลรายได้จะอัปเดตอัตโนมัติเมื่อมีการชำระเงินผ่านระบบ</p>
+            <p className="text-sm text-slate-500 mt-4">ข้อมูลรายได้จะอัปเดตอัตโนมัติเมื่อมีการชำระเงินผ่านระบบ</p>
           </div>
         )}
 
@@ -284,9 +281,9 @@ export default function CeoDashboard() {
                 <p className="text-3xl font-bold text-slate-900">{stats?.totalUsers || 0}</p>
                 <p className="text-sm text-slate-500">สมาชิกทั้งหมด</p>
               </div>
-              <div className="p-4 bg-amber-50 rounded-xl text-center">
-                <p className="text-3xl font-bold text-amber-700">{stats?.vipUsers || 0}</p>
-                <p className="text-sm text-amber-600">VIP</p>
+              <div className="p-4 bg-primary/5 rounded-xl text-center">
+                <p className="text-3xl font-bold text-primary">{stats?.vipUsers || 0}</p>
+                <p className="text-sm text-primary/70">VIP</p>
               </div>
               <div className="p-4 bg-emerald-50 rounded-xl text-center">
                 <p className="text-3xl font-bold text-emerald-700">{stats?.newUsersToday || 0}</p>
@@ -308,9 +305,9 @@ export default function CeoDashboard() {
                 <p className="text-3xl font-bold text-slate-900">{stats?.totalNovels || 0}</p>
                 <p className="text-sm text-slate-500">นิยายทั้งหมด</p>
               </div>
-              <div className="p-4 bg-blue-50 rounded-xl text-center">
-                <p className="text-3xl font-bold text-blue-700">{stats?.totalChapters || 0}</p>
-                <p className="text-sm text-blue-600">ตอนทั้งหมด</p>
+              <div className="p-4 bg-primary/5 rounded-xl text-center">
+                <p className="text-3xl font-bold text-primary">{stats?.totalChapters || 0}</p>
+                <p className="text-sm text-primary/70">ตอนทั้งหมด</p>
               </div>
               <div className="p-4 bg-purple-50 rounded-xl text-center">
                 <p className="text-3xl font-bold text-purple-700">{stats?.totalViews || 0}</p>

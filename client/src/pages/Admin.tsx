@@ -41,11 +41,11 @@ export default function Admin() {
   ];
 
   return (
-    <div className="min-h-screen flex" style={{ background: "oklch(0.97 0.005 155)" }}>
+    <div className="min-h-screen flex bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r flex-shrink-0 hidden lg:block">
         <div className="p-4 border-b">
-          <h2 className="text-lg font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.40 0.12 155)" }}>
+          <h2 className="text-lg font-bold font-[Kanit] text-primary">
             <Shield className="w-5 h-5 inline mr-2" />
             {user.role === "ceo" ? "CEO Panel" : "Admin Panel"}
           </h2>
@@ -56,7 +56,7 @@ export default function Admin() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "text-white shadow-md" : "text-foreground hover:bg-muted"}`}
-              style={tab === t.id ? { background: "oklch(0.40 0.12 155)" } : {}}
+              style={tab === t.id ? { background: 'var(--primary)' } : {}}
             >
               {t.icon} {t.label}
             </button>
@@ -601,7 +601,7 @@ function AdSenseTab() {
 
         {/* Conditional fields based on method */}
         {method === 'adsense_code' && (
-          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+          <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
             <label className="block text-sm font-medium">โค้ด AdSense (วางใน &lt;head&gt;)</label>
             <textarea value={settings.adsense_code} onChange={e => update('adsense_code', e.target.value)} rows={5} placeholder='<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX" crossorigin="anonymous"></script>' className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
             <p className="text-xs text-muted-foreground">คัดลอกโค้ดจากหน้า AdSense แล้ววางที่นี่</p>
@@ -609,7 +609,7 @@ function AdSenseTab() {
         )}
 
         {method === 'ads_txt' && (
-          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+          <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
             <label className="block text-sm font-medium">เนื้อหาไฟล์ ads.txt</label>
             <textarea value={settings.ads_txt_content} onChange={e => update('ads_txt_content', e.target.value)} rows={5} placeholder="google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0" className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
             <div className="p-3 rounded-lg border bg-blue-50 border-blue-200">
@@ -623,7 +623,7 @@ function AdSenseTab() {
         )}
 
         {method === 'meta_tag' && (
-          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+          <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
             <label className="block text-sm font-medium">เมตาแท็กยืนยัน</label>
             <textarea value={settings.adsense_meta_tag} onChange={e => update('adsense_meta_tag', e.target.value)} rows={3} placeholder='<meta name="google-adsense-account" content="ca-pub-XXXXXXXXXXXXXXXX">' className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
             <p className="text-xs text-muted-foreground">คัดลอกเมตาแท็กจากหน้า AdSense แล้ววางที่นี่</p>

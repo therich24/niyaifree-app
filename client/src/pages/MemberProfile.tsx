@@ -126,7 +126,7 @@ export default function MemberProfile() {
               <label className="block text-sm font-medium text-slate-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
               <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" required />
             </div>
-            <button type="submit" disabled={changingPw} className="inline-flex items-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={changingPw} className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
               <Lock className="w-4 h-4" />
               {changingPw ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}
             </button>

@@ -1,12 +1,11 @@
-/**
- * Design: Koparion Reborn — Clean reader with progress bar, bg color picker, auto-next
- * Mobile-first, reading progress bar at top
- */
+/*
+  NiYAIFREE Reader — Koparion Style + Coral Red
+*/
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronLeft, ChevronRight, ArrowLeft, BookOpen, Settings2, Palette } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Settings2, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -46,7 +45,6 @@ export default function Reader() {
     }
   }, [novelId, chapterNumber]);
 
-  // Scroll progress
   useEffect(() => {
     const handleScroll = () => {
       if (!contentRef.current) return;
@@ -60,7 +58,6 @@ export default function Reader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Log reading when leaving
   useEffect(() => {
     return () => {
       if (user && chapter) {
@@ -94,8 +91,8 @@ export default function Reader() {
   if (!chapter) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <p className="text-xl text-muted-foreground mb-4">ไม่พบตอนนี้</p>
-        <Link href="/"><Button>กลับหน้าแรก</Button></Link>
+        <p className="text-xl text-slate-400 mb-4">ไม่พบตอนนี้</p>
+        <Link href="/"><Button className="bg-primary text-white">กลับหน้าแรก</Button></Link>
       </div>
     </div>
   );
@@ -105,17 +102,17 @@ export default function Reader() {
   return (
     <div className="min-h-screen" style={{ background: bgColor, color: textColor }}>
       {/* Reading progress bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-1">
-        <div className="reading-progress h-full transition-all duration-150" style={{ width: `${progress}%` }} />
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-slate-200">
+        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
       </div>
 
       {/* Top nav */}
       <div className="sticky top-1 z-40 backdrop-blur-md border-b" style={{ background: isDark ? "rgba(26,26,26,0.95)" : "rgba(255,255,255,0.95)", borderColor: isDark ? "#333" : "#e5e5e5" }}>
         <div className="container flex items-center justify-between h-12">
-          <Link href={`/novel/${chapter.novelId}`} className="flex items-center gap-1 text-sm no-underline" style={{ color: "oklch(0.40 0.12 155)" }}>
+          <Link href={`/novel/${chapter.novelId}`} className="flex items-center gap-1 text-sm text-primary no-underline hover:underline">
             <ArrowLeft className="w-4 h-4" /> กลับ
           </Link>
-          <span className="text-sm font-medium truncate max-w-[200px]" style={{ fontFamily: "Kanit" }}>
+          <span className="text-sm font-medium font-[Kanit] truncate max-w-[200px]">
             ตอนที่ {chNum}
           </span>
           <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-md hover:bg-black/5">
@@ -123,7 +120,6 @@ export default function Reader() {
           </button>
         </div>
 
-        {/* Settings panel */}
         {showSettings && (
           <div className="border-t p-4 space-y-4" style={{ borderColor: isDark ? "#333" : "#e5e5e5" }}>
             <div>
@@ -144,7 +140,7 @@ export default function Reader() {
               <p className="text-xs font-semibold mb-2">ขนาดตัวอักษร: {fontSize}px</p>
               <div className="flex items-center gap-3">
                 <button onClick={() => saveFs(Math.max(14, fontSize - 2))} className="w-8 h-8 rounded border flex items-center justify-center text-sm font-bold">A-</button>
-                <input type="range" min="14" max="28" value={fontSize} onChange={e => saveFs(parseInt(e.target.value))} className="flex-1" />
+                <input type="range" min="14" max="28" value={fontSize} onChange={e => saveFs(parseInt(e.target.value))} className="flex-1 accent-primary" />
                 <button onClick={() => saveFs(Math.min(28, fontSize + 2))} className="w-8 h-8 rounded border flex items-center justify-center text-sm font-bold">A+</button>
               </div>
             </div>
@@ -154,19 +150,16 @@ export default function Reader() {
 
       {/* Content */}
       <div ref={contentRef} className="container max-w-3xl py-8">
-        <h1 className="text-xl md:text-2xl font-bold mb-6 text-center" style={{ fontFamily: "Kanit" }}>
+        <h1 className="text-xl md:text-2xl font-bold font-[Kanit] mb-6 text-center">
           {chapter.title || `ตอนที่ ${chNum}`}
         </h1>
 
-        <div
-          className="leading-loose whitespace-pre-wrap"
-          style={{ fontSize: `${fontSize}px`, lineHeight: "2" }}
-        >
+        <div className="leading-loose whitespace-pre-wrap" style={{ fontSize: `${fontSize}px`, lineHeight: "2" }}>
           {chapter.content}
         </div>
 
         {/* Ad placeholder */}
-        <div className="my-8 p-4 rounded-lg border text-center text-sm text-muted-foreground" style={{ borderColor: isDark ? "#333" : "#e5e5e5" }}>
+        <div className="my-8 p-4 rounded-lg border text-center text-sm" style={{ borderColor: isDark ? "#333" : "#e5e5e5", color: isDark ? "#666" : "#999" }}>
           โฆษณา (AdSense)
         </div>
 
@@ -178,16 +171,16 @@ export default function Reader() {
             </Button>
           ) : <div />}
 
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm" style={{ color: isDark ? "#888" : "#999" }}>
             {chNum} / {chapter.totalChapters}
           </span>
 
           {chNum < chapter.totalChapters ? (
-            <Button onClick={() => goChapter(chNum + 1)} className="text-white" style={{ background: "oklch(0.40 0.12 155)" }}>
+            <Button onClick={() => goChapter(chNum + 1)} className="bg-primary hover:bg-primary/90 text-white">
               ตอนถัดไป <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <span className="text-sm font-semibold" style={{ color: "oklch(0.72 0.16 60)" }}>จบ</span>
+            <span className="text-sm font-semibold text-amber-500">จบ</span>
           )}
         </div>
       </div>

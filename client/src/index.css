@@ -1,9 +1,3 @@
-/* 
-  NiYAIFREE Design System — Noraure/Boake Book Store Style
-  Colors: Clean white bg, Coral Red (#E8453C) accent, Dark text
-  Font: Kanit (heading) + Sarabun (body)
-  Layout: Full-width sections, generous whitespace, book-focused
-*/
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -46,85 +40,84 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* Custom Noraure colors */
-  --color-coral: oklch(0.62 0.21 25);
+  /* Coral Red Brand Colors */
+  --color-coral: oklch(0.62 0.22 25);
   --color-coral-light: oklch(0.72 0.18 25);
   --color-coral-dark: oklch(0.52 0.22 25);
-  --color-gold: oklch(0.78 0.15 85);
-  --color-cream: oklch(0.97 0.01 90);
   --font-heading: 'Kanit', sans-serif;
   --font-body: 'Sarabun', sans-serif;
 }
 
 :root {
-  --primary: oklch(0.62 0.21 25);
+  /* Primary = Coral Red #E8453C */
+  --primary: oklch(0.62 0.22 25);
   --primary-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.62 0.21 25);
+  --sidebar-primary: oklch(0.58 0.22 25);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --chart-1: oklch(0.62 0.21 25);
-  --chart-2: oklch(0.72 0.18 25);
+  --chart-1: oklch(0.72 0.18 25);
+  --chart-2: oklch(0.62 0.22 25);
   --chart-3: oklch(0.52 0.22 25);
-  --chart-4: oklch(0.78 0.15 85);
-  --chart-5: oklch(0.45 0.12 260);
-  --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.18 0.01 260);
+  --chart-4: oklch(0.42 0.18 25);
+  --chart-5: oklch(0.32 0.14 25);
+  --radius: 0.625rem;
+  --background: oklch(0.995 0.002 90);
+  --foreground: oklch(0.2 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 260);
+  --card-foreground: oklch(0.2 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 260);
-  --secondary: oklch(0.97 0.005 260);
-  --secondary-foreground: oklch(0.35 0.01 260);
-  --muted: oklch(0.96 0.005 260);
-  --muted-foreground: oklch(0.55 0.01 260);
-  --accent: oklch(0.96 0.005 260);
-  --accent-foreground: oklch(0.18 0.01 260);
-  --destructive: oklch(0.58 0.24 27);
+  --popover-foreground: oklch(0.2 0.02 260);
+  --secondary: oklch(0.97 0.003 260);
+  --secondary-foreground: oklch(0.35 0.02 260);
+  --muted: oklch(0.96 0.003 260);
+  --muted-foreground: oklch(0.5 0.02 260);
+  --accent: oklch(0.96 0.003 260);
+  --accent-foreground: oklch(0.2 0.02 260);
+  --destructive: oklch(0.55 0.24 27);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.92 0.005 260);
-  --input: oklch(0.92 0.005 260);
-  --ring: oklch(0.62 0.21 25);
+  --border: oklch(0.91 0.005 260);
+  --input: oklch(0.91 0.005 260);
+  --ring: oklch(0.62 0.22 25);
   --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.18 0.01 260);
-  --sidebar-accent: oklch(0.96 0.005 260);
-  --sidebar-accent-foreground: oklch(0.18 0.01 260);
-  --sidebar-border: oklch(0.92 0.005 260);
-  --sidebar-ring: oklch(0.62 0.21 25);
+  --sidebar-foreground: oklch(0.2 0.02 260);
+  --sidebar-accent: oklch(0.96 0.003 260);
+  --sidebar-accent-foreground: oklch(0.2 0.02 260);
+  --sidebar-border: oklch(0.91 0.005 260);
+  --sidebar-ring: oklch(0.62 0.22 25);
 }
 
 .dark {
-  --primary: oklch(0.72 0.18 25);
+  --primary: oklch(0.68 0.2 25);
   --primary-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.72 0.18 25);
+  --sidebar-primary: oklch(0.65 0.2 25);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --background: oklch(0.15 0.01 260);
-  --foreground: oklch(0.92 0.005 260);
-  --card: oklch(0.2 0.01 260);
-  --card-foreground: oklch(0.92 0.005 260);
-  --popover: oklch(0.2 0.01 260);
-  --popover-foreground: oklch(0.92 0.005 260);
-  --secondary: oklch(0.25 0.01 260);
-  --secondary-foreground: oklch(0.8 0.005 260);
-  --muted: oklch(0.28 0.01 260);
-  --muted-foreground: oklch(0.7 0.01 260);
-  --accent: oklch(0.28 0.01 260);
-  --accent-foreground: oklch(0.92 0.005 260);
+  --background: oklch(0.15 0.005 260);
+  --foreground: oklch(0.9 0.005 90);
+  --card: oklch(0.2 0.006 260);
+  --card-foreground: oklch(0.9 0.005 90);
+  --popover: oklch(0.2 0.006 260);
+  --popover-foreground: oklch(0.9 0.005 90);
+  --secondary: oklch(0.24 0.006 260);
+  --secondary-foreground: oklch(0.7 0.005 90);
+  --muted: oklch(0.27 0.006 260);
+  --muted-foreground: oklch(0.65 0.015 260);
+  --accent: oklch(0.27 0.006 260);
+  --accent-foreground: oklch(0.92 0.005 90);
   --destructive: oklch(0.7 0.19 22);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.72 0.18 25);
+  --ring: oklch(0.68 0.2 25);
   --chart-1: oklch(0.72 0.18 25);
-  --chart-2: oklch(0.62 0.21 25);
+  --chart-2: oklch(0.62 0.22 25);
   --chart-3: oklch(0.52 0.22 25);
-  --chart-4: oklch(0.78 0.15 85);
-  --chart-5: oklch(0.45 0.12 260);
-  --sidebar: oklch(0.2 0.01 260);
-  --sidebar-foreground: oklch(0.92 0.005 260);
-  --sidebar-accent: oklch(0.28 0.01 260);
+  --chart-4: oklch(0.42 0.18 25);
+  --chart-5: oklch(0.32 0.14 25);
+  --sidebar: oklch(0.2 0.006 260);
+  --sidebar-foreground: oklch(0.9 0.005 90);
+  --sidebar-accent: oklch(0.27 0.006 260);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.72 0.18 25);
+  --sidebar-ring: oklch(0.68 0.2 25);
 }
 
 @layer base {
@@ -132,10 +125,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-[Sarabun];
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Kanit', sans-serif;
+    font-family: var(--font-heading);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -158,16 +152,19 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
   .flex {
     min-height: 0;
     min-width: 0;
   }
+
   @media (min-width: 640px) {
     .container {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
+
   @media (min-width: 1024px) {
     .container {
       padding-left: 2rem;
@@ -176,82 +173,34 @@
     }
   }
 
-  /* Noraure-style book card */
+  /* Promo banner marquee */
+  .promo-banner {
+    background: var(--primary);
+    color: white;
+  }
+
+  /* Book card hover */
   .book-card {
-    @apply relative overflow-hidden rounded-lg bg-white transition-all duration-300;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   .book-card:hover {
-    @apply shadow-xl -translate-y-1;
-  }
-  .book-card:hover .book-actions {
-    @apply opacity-100 translate-y-0;
-  }
-  .book-actions {
-    @apply absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent opacity-0 translate-y-4 transition-all duration-300;
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   }
 
-  /* Sale badge */
-  .sale-badge {
-    @apply absolute top-2 left-2 bg-coral text-white text-xs font-bold px-2 py-1 rounded z-10;
+  /* Genre pill */
+  .genre-pill {
+    transition: all 0.2s ease;
+  }
+  .genre-pill:hover {
+    transform: translateY(-2px);
   }
 
-  /* Category pill */
-  .category-pill {
-    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border;
-  }
-  .category-pill.active {
-    @apply bg-coral text-white border-coral;
-  }
-  .category-pill:not(.active) {
-    @apply bg-white text-foreground border-border hover:border-coral hover:text-coral;
-  }
-
-  /* Marquee animation for categories */
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  .animate-marquee {
-    animation: marquee 30s linear infinite;
-  }
-  .animate-marquee:hover {
-    animation-play-state: paused;
-  }
-
-  /* Star rating */
-  .star-rating {
-    @apply flex items-center gap-0.5;
-  }
-  .star-rating .star {
-    @apply w-4 h-4 text-gold;
-  }
-
-  /* Section title with underline */
-  .section-title {
-    @apply text-3xl font-bold text-center mb-2 font-[Kanit];
-  }
-  .section-title::after {
-    content: '';
-    @apply block w-16 h-1 bg-coral mx-auto mt-3 rounded-full;
-  }
-
-  /* Trust badge */
-  .trust-badge {
-    @apply flex items-center gap-3 p-4;
-  }
-
-  /* Copyright warning banner */
-  .copyright-banner {
-    @apply bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800;
-  }
-
-  /* Announcement bar */
-  .announcement-bar {
-    @apply bg-coral text-white text-center py-2 text-sm font-medium;
-  }
-
-  /* VIP badge */
-  .vip-badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-xs font-bold rounded-full;
+  /* Section divider */
+  .section-divider {
+    height: 3px;
+    width: 60px;
+    background: var(--primary);
+    border-radius: 2px;
   }
 }

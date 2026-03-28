@@ -1,5 +1,5 @@
 /*
-  NiYAIFREE Footer — Noraure/Boake Style
+  NiYAIFREE Footer — Koparion Book Shop Style + Coral Red
   Dark bg, 4-column layout, copyright warning
 */
 import { Link } from "wouter";

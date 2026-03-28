@@ -1,6 +1,5 @@
 /*
-  Coins Page — /coins
-  Buy coins for eBook downloads
+  Coins Page — /coins — Coral Red Theme
 */
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,19 +28,19 @@ export default function CoinsPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50 py-16">
+      <section className="bg-gradient-to-br from-amber-50 via-white to-amber-50 py-16">
         <div className="container text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-500/20">
+          <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
             <Coins className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold font-[Kanit] text-slate-900 mb-3">
-            ซื้อ <span className="text-emerald-600">Coins</span>
+            ซื้อ <span className="text-amber-600">Coins</span>
           </h1>
           <p className="text-slate-600 max-w-lg mx-auto">
             Coins ใช้สำหรับโหลด eBook เป็นรูปเล่ม (10 Coins ต่อ 1 เล่ม) ซื้อขั้นต่ำ ฿100
           </p>
           {user && (
-            <p className="mt-4 text-lg font-semibold text-emerald-700">
+            <p className="mt-4 text-lg font-semibold text-amber-700">
               Coins ปัจจุบัน: <span className="text-2xl">{user.coins || 0}</span> Coins
             </p>
           )}
@@ -58,27 +57,27 @@ export default function CoinsPage() {
                 onClick={() => setSelected(i)}
                 className={`relative p-6 rounded-2xl border-2 text-left transition-all ${
                   selected === i
-                    ? "border-emerald-500 bg-emerald-50 shadow-lg"
-                    : "border-slate-200 bg-white hover:border-emerald-300"
+                    ? "border-primary bg-primary/5 shadow-lg"
+                    : "border-slate-200 bg-white hover:border-primary/30"
                 }`}
               >
                 {pkg.popular && (
-                  <span className="absolute -top-3 right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="absolute -top-3 right-4 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
                     ยอดนิยม
                   </span>
                 )}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-bold text-slate-900">{pkg.label}</p>
-                    {pkg.save && <p className="text-xs text-emerald-600 font-semibold mt-1">{pkg.save}</p>}
+                    {pkg.save && <p className="text-xs text-primary font-semibold mt-1">{pkg.save}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-emerald-700">฿{pkg.price}</p>
+                    <p className="text-2xl font-bold text-amber-600">฿{pkg.price}</p>
                     <p className="text-xs text-slate-500">฿{(pkg.price / pkg.coins).toFixed(2)}/coin</p>
                   </div>
                 </div>
                 {selected === i && (
-                  <div className="absolute top-4 left-4 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <div className="absolute top-4 left-4 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                   </div>
                 )}
@@ -89,7 +88,7 @@ export default function CoinsPage() {
           <div className="mt-8 text-center">
             <button
               onClick={handleBuy}
-              className="inline-flex items-center gap-2 bg-emerald-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/25"
+              className="inline-flex items-center gap-2 bg-primary text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg"
             >
               ซื้อ {COIN_PACKAGES[selected].label} — ฿{COIN_PACKAGES[selected].price}
               <ChevronRight className="w-5 h-5" />
@@ -101,15 +100,15 @@ export default function CoinsPage() {
             <h3 className="font-bold font-[Kanit] mb-3">Coins ใช้ทำอะไรได้?</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-emerald-500" />
+                <Download className="w-4 h-4 text-primary" />
                 โหลด eBook เป็นรูปเล่ม — 10 Coins ต่อ 1 เล่ม
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-500" />
+                <Check className="w-4 h-4 text-primary" />
                 Coins ไม่มีวันหมดอายุ ใช้ได้ตลอด
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-500" />
+                <Check className="w-4 h-4 text-primary" />
                 ซื้อเมื่อต้องการ ไม่ต้องสมัครรายเดือน
               </li>
             </ul>
