@@ -1,20 +1,24 @@
 /*
-  NiYAIFREE NovelDetail — Koparion Style + Coral Red
+  NiYAIFREE NovelDetail — Koparion Style + Coral Red + eBook Download
 */
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, Eye, Heart, Clock, Bookmark, ChevronRight, ArrowLeft } from "lucide-react";
+import { BookOpen, Eye, Heart, Clock, Bookmark, ChevronRight, ArrowLeft, Download, FileText, Coins, Crown, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function NovelDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [novel, setNovel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(false);
+  const [showEbookModal, setShowEbookModal] = useState(false);
+  const [ebookInfo, setEbookInfo] = useState<any>(null);
+  const [ebookLoading, setEbookLoading] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -30,6 +34,58 @@ export default function NovelDetail() {
       await api.addBookmark({ novelId: novel.id, chapterNumber: 1 });
       toast.success("เพิ่มที่คั่นแล้ว", { id: toastId });
     } catch (e: any) { toast.error(e.message || "ไม่สามารถบันทึกได้", { id: toastId }); }
+  };
+
+  const handleOpenEbookModal = async () => {
+    if (!user) { toast.error("กรุณาเข้าสู่ระบบก่อน"); return; }
+    setShowEbookModal(true);
+    setEbookLoading(true);
+    try {
+      const info = await api.checkEbook(novel.id);
+      setEbookInfo(info);
+    } catch (e: any) {
+      toast.error("ไม่สามารถตรวจสอบสิทธิ์ได้");
+      setShowEbookModal(false);
+    } finally { setEbookLoading(false); }
+  };
+
+  const handlePurchaseEbook = async (method: "vip" | "coins") => {
+    setEbookLoading(true);
+    const toastId = toast.loading("กำลังซื้อ eBook...");
+    try {
+      const result = await api.downloadEbook({ novelId: novel.id });
+      toast.success(
+        result.method === "vip"
+          ? `ใช้สิทธิ์ VIP สำเร็จ (${result.downloadsUsed}/${result.downloadsLimit} เล่ม)`
+          : `หัก ${result.coinsUsed} Coins สำเร็จ`,
+        { id: toastId }
+      );
+      refreshUser();
+      // Refresh ebook info
+      const info = await api.checkEbook(novel.id);
+      setEbookInfo(info);
+    } catch (e: any) {
+      toast.error(e.message || "ซื้อไม่สำเร็จ", { id: toastId });
+    } finally { setEbookLoading(false); }
+  };
+
+  const handleDownloadPdf = async () => {
+    setPdfGenerating(true);
+    const toastId = toast.loading("กำลังสร้างไฟล์ PDF... อาจใช้เวลาสักครู่");
+    try {
+      const blob = await api.generateEbookPdf(novel.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${novel.title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("ดาวน์โหลด PDF สำเร็จ!", { id: toastId });
+    } catch (e: any) {
+      toast.error(e.message || "สร้าง PDF ไม่สำเร็จ", { id: toastId });
+    } finally { setPdfGenerating(false); }
   };
 
   if (loading) return (
@@ -110,7 +166,7 @@ export default function NovelDetail() {
                 </div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {novel.chapters?.length > 0 && (
                   <Link href={`/read/${novel.id}/1`}>
                     <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold">
@@ -120,6 +176,14 @@ export default function NovelDetail() {
                 )}
                 <Button size="lg" variant="outline" onClick={handleBookmark} className="border-slate-200 hover:border-primary hover:text-primary">
                   <Bookmark className="w-4 h-4 mr-2" /> บุ๊คมาร์ค
+                </Button>
+                {/* eBook Download Button */}
+                <Button
+                  size="lg"
+                  onClick={handleOpenEbookModal}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-md"
+                >
+                  <Download className="w-4 h-4 mr-2" /> ดาวน์โหลด eBook
                 </Button>
               </div>
             </div>
@@ -164,6 +228,144 @@ export default function NovelDetail() {
       {lightbox && novel.coverUrl && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(false)}>
           <img src={novel.coverUrl} alt={novel.title} className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" />
+        </div>
+      )}
+
+      {/* eBook Download Modal */}
+      {showEbookModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4" onClick={() => !ebookLoading && !pdfGenerating && setShowEbookModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-5 text-white relative">
+              <button onClick={() => !pdfGenerating && setShowEbookModal(false)} className="absolute top-4 right-4 text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold font-[Kanit]">ดาวน์โหลด eBook</h3>
+                  <p className="text-sm text-white/80 truncate max-w-[250px]">{novel.title}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5">
+              {ebookLoading ? (
+                <div className="flex flex-col items-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-500 mb-3" />
+                  <p className="text-slate-500 text-sm">กำลังตรวจสอบสิทธิ์...</p>
+                </div>
+              ) : ebookInfo ? (
+                <div className="space-y-4">
+                  {/* Info */}
+                  <div className="bg-slate-50 rounded-xl p-4 text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">จำนวนตอน</span>
+                      <span className="font-semibold text-slate-900">{ebookInfo.chapterCount} ตอน</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">รูปแบบ</span>
+                      <span className="font-semibold text-slate-900">PDF (A4)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">ฟอนต์</span>
+                      <span className="font-semibold text-slate-900">Sarabun + Kanit</span>
+                    </div>
+                  </div>
+
+                  {ebookInfo.alreadyPurchased ? (
+                    /* Already purchased — show download button */
+                    <div className="space-y-3">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                        <p className="text-emerald-700 font-semibold text-sm">คุณซื้อ eBook เล่มนี้แล้ว</p>
+                        <p className="text-emerald-600 text-xs mt-1">สามารถดาวน์โหลดได้ภายใน 30 วัน</p>
+                      </div>
+                      <Button
+                        onClick={handleDownloadPdf}
+                        disabled={pdfGenerating}
+                        className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold h-12 text-base"
+                      >
+                        {pdfGenerating ? (
+                          <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> กำลังสร้าง PDF...</>
+                        ) : (
+                          <><Download className="w-5 h-5 mr-2" /> ดาวน์โหลด PDF</>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    /* Not purchased — show purchase options */
+                    <div className="space-y-3">
+                      {/* VIP Option */}
+                      {ebookInfo.isVip && (
+                        <button
+                          onClick={() => handlePurchaseEbook("vip")}
+                          disabled={ebookLoading || ebookInfo.vipDownloadsUsed >= ebookInfo.vipDownloadsLimit}
+                          className="w-full p-4 rounded-xl border-2 border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Crown className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-bold text-amber-800 font-[Kanit]">ใช้สิทธิ์ VIP (ฟรี)</p>
+                              <p className="text-xs text-amber-600 mt-0.5">
+                                ใช้ไปแล้ว {ebookInfo.vipDownloadsUsed}/{ebookInfo.vipDownloadsLimit} เล่มเดือนนี้
+                              </p>
+                            </div>
+                            {ebookInfo.vipDownloadsUsed < ebookInfo.vipDownloadsLimit ? (
+                              <span className="text-amber-700 font-bold">ฟรี</span>
+                            ) : (
+                              <span className="text-red-500 text-xs font-semibold">ครบโควต้า</span>
+                            )}
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Coins Option */}
+                      <button
+                        onClick={() => handlePurchaseEbook("coins")}
+                        disabled={ebookLoading || ebookInfo.coins < ebookInfo.coinCost}
+                        className="w-full p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Coins className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-blue-800 font-[Kanit]">ใช้ Coins</p>
+                            <p className="text-xs text-blue-600 mt-0.5">
+                              คงเหลือ {ebookInfo.coins} Coins
+                            </p>
+                          </div>
+                          <span className="text-blue-700 font-bold">{ebookInfo.coinCost} Coins</span>
+                        </div>
+                      </button>
+
+                      {ebookInfo.coins < ebookInfo.coinCost && !ebookInfo.isVip && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                          <p className="text-red-600 text-sm">Coins ไม่เพียงพอ</p>
+                          <Link href="/coins" className="text-primary text-sm font-semibold underline">ซื้อ Coins เพิ่ม</Link>
+                          <span className="mx-2 text-slate-300">|</span>
+                          <Link href="/vip" className="text-amber-600 text-sm font-semibold underline">สมัคร VIP</Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Copyright Warning */}
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-red-600 leading-relaxed">
+                      <strong>คำเตือนลิขสิทธิ์:</strong> ห้ามคัดลอก ทำซ้ำ ดัดแปลง เผยแพร่ หรือจำหน่ายเนื้อหาในไฟล์นี้
+                      โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร ตาม พ.ร.บ.ลิขสิทธิ์ พ.ศ. 2537
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       )}
     </div>

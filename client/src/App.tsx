@@ -21,6 +21,7 @@ import MemberDashboard from "./pages/MemberDashboard";
 import MemberProfile from "./pages/MemberProfile";
 import VipPage from "./pages/VipPage";
 import CoinsPage from "./pages/CoinsPage";
+import EbookLibrary from "./pages/EbookLibrary";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -56,6 +57,7 @@ function Router() {
         {/* Member */}
         <Route path="/member" component={MemberDashboard} />
         <Route path="/member/profile" component={MemberProfile} />
+        <Route path="/member/ebooks" component={EbookLibrary} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/bookmarks" component={Dashboard} />
 

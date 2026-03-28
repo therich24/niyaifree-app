@@ -1,11 +1,22 @@
-# NiYAIFREE UI Color Change TODO
+# eBook PDF Download Feature TODO
 
-## Plan
-- [ ] Revert index.css back to Koparion-style layout with Coral Red (#E8453C) color
-- [ ] Revert Home.tsx to Koparion book-shop style layout
-- [ ] Revert Navbar.tsx to Koparion style
-- [ ] Revert BookCard.tsx to Koparion style
-- [ ] Revert Footer.tsx to Koparion style
-- [ ] Keep all new pages: CEO, Member, VIP, Coins, Profile (just update colors)
-- [ ] Keep all backend API routes
-- [ ] Keep copyright warning and AdSense
+## Backend
+- [ ] Install pdfkit or use built-in PDF generation
+- [ ] Create API route: GET /api/ebook/download/:novelId
+- [ ] Check VIP status (free 10/month) or deduct 10 Coins
+- [ ] Track downloads in ebook_downloads table
+- [ ] Generate PDF with novel title, chapters, copyright notice
+- [ ] Add API route: GET /api/ebook/my-downloads (download history)
+
+## Frontend
+- [ ] Add download button on NovelDetail page (VIP/Coins)
+- [ ] Show download modal with VIP/Coins option
+- [ ] Add eBook Library page (/member/ebooks) for download history
+- [ ] Add download count on MemberDashboard
+
+## PDF Format
+- [ ] Cover page with novel title + author
+- [ ] Table of contents
+- [ ] Each chapter on new section
+- [ ] Copyright warning footer on every page
+- [ ] Thai font support (Sarabun)

@@ -64,6 +64,18 @@ export const api = {
   getCoinHistory: () => request("/member/coin-history"),
   downloadEbook: (body: any) => request("/member/download-ebook", { method: "POST", body: JSON.stringify(body) }),
   getDownloadHistory: () => request("/member/download-history"),
+  checkEbook: (novelId: number) => request(`/ebook/check/${novelId}`),
+  generateEbookPdf: async (novelId: number) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/ebook/generate-pdf/${novelId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "ดาวน์โหลดล้มเหลว" }));
+      throw new Error(err.error || "ดาวน์โหลดล้มเหลว");
+    }
+    return res.blob();
+  },
 
   // Admin
   getStats: () => request("/admin/stats"),

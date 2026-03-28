@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import pool from "./db.js";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
+import PDFDocument from "pdfkit";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,9 +96,10 @@ async function startServer() {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { login, password } = req.body;
+      if (!login || !password) return res.status(400).json({ error: "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน" });
       const [rows]: any = await pool.execute(
         "SELECT * FROM users WHERE username=? OR email=? OR memberId=? OR phone=?",
-        [login, login, login.toUpperCase(), login]
+        [login, login, String(login).toUpperCase(), login]
       );
       if (rows.length === 0) return res.status(401).json({ error: "ไม่พบบัญชี" });
       const user = rows[0];
@@ -119,9 +121,10 @@ async function startServer() {
   app.post("/api/ceo/login", async (req, res) => {
     try {
       const { login, password } = req.body;
+      if (!login || !password) return res.status(400).json({ error: "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน" });
       const [rows]: any = await pool.execute(
         "SELECT * FROM users WHERE (username=? OR email=? OR memberId=?) AND role='ceo'",
-        [login, login, login.toUpperCase()]
+        [login, login, String(login).toUpperCase()]
       );
       if (rows.length === 0) return res.status(401).json({ error: "ไม่พบบัญชี CEO" });
       const user = rows[0];
@@ -461,6 +464,209 @@ async function startServer() {
       await pool.execute("INSERT INTO coin_transactions (userId, amount, type, description, relatedId) VALUES (?, ?, 'use_ebook', ?, ?)", [req.user.id, -coinCost, `โหลด eBook`, novelId]);
       await pool.execute("INSERT INTO ebook_downloads (userId, novelId, coinCost, format) VALUES (?, ?, ?, 'pdf')", [req.user.id, novelId, coinCost]);
       res.json({ success: true, method: "coins", coinsUsed: coinCost });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============ EBOOK PDF GENERATION ============
+  app.get("/api/ebook/generate-pdf/:novelId", authMiddleware(), async (req: any, res: any) => {
+    try {
+      const novelId = parseInt(req.params.novelId);
+      // Check if user already has a valid download record (purchased within last 30 days)
+      const [existing]: any = await pool.execute(
+        "SELECT id FROM ebook_downloads WHERE userId=? AND novelId=? AND createdAt > DATE_SUB(NOW(), INTERVAL 30 DAY) LIMIT 1",
+        [req.user.id, novelId]
+      );
+      if (!existing[0]) {
+        // Must purchase first via /api/member/download-ebook
+        return res.status(403).json({ error: "กรุณาซื้อ eBook ก่อนดาวน์โหลด" });
+      }
+
+      // Fetch novel
+      const [novels]: any = await pool.execute("SELECT * FROM novels WHERE id=?", [novelId]);
+      if (!novels[0]) return res.status(404).json({ error: "ไม่พบนิยาย" });
+      const novel = novels[0];
+
+      // Fetch all chapters
+      const [chapters]: any = await pool.execute(
+        "SELECT chapterNumber, title, content FROM chapters WHERE novelId=? ORDER BY chapterNumber ASC",
+        [novelId]
+      );
+      if (chapters.length === 0) return res.status(400).json({ error: "นิยายยังไม่มีตอน" });
+
+      // Font paths
+      const fontsDir = path.resolve(__dirname, "..", "server", "fonts");
+      const sarabunRegular = path.join(fontsDir, "Sarabun-Regular.ttf");
+      const sarabunBold = path.join(fontsDir, "Sarabun-Bold.ttf");
+      const kanitBold = path.join(fontsDir, "Kanit-Bold.ttf");
+
+      // Create PDF
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: { top: 72, bottom: 72, left: 60, right: 60 },
+        info: {
+          Title: novel.title,
+          Author: novel.author || "NiYAIFREE",
+          Subject: `${novel.category} — ${novel.title}`,
+          Creator: "NiYAIFREE — niyaifree.com",
+        },
+        bufferPages: true,
+      });
+
+      // Set response headers
+      const asciiTitle = novel.title.replace(/[^a-zA-Z0-9]/g, "_");
+      const utf8Title = encodeURIComponent(novel.title);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${asciiTitle}.pdf"; filename*=UTF-8''${utf8Title}.pdf`);
+      doc.pipe(res);
+
+      // Register fonts
+      doc.registerFont("Sarabun", sarabunRegular);
+      doc.registerFont("Sarabun-Bold", sarabunBold);
+      doc.registerFont("Kanit-Bold", kanitBold);
+
+      // ---- COVER PAGE ----
+      doc.rect(0, 0, doc.page.width, doc.page.height).fill("#E8453C");
+      doc.fill("#FFFFFF");
+      doc.font("Kanit-Bold").fontSize(36).text(novel.title, 60, 200, {
+        align: "center",
+        width: doc.page.width - 120,
+      });
+      doc.moveDown(1);
+      doc.font("Sarabun").fontSize(16).text(novel.author || "NiYAIFREE", {
+        align: "center",
+        width: doc.page.width - 120,
+      });
+      doc.moveDown(0.5);
+      doc.font("Sarabun").fontSize(12).text(novel.category || "", {
+        align: "center",
+        width: doc.page.width - 120,
+      });
+      // Logo at bottom
+      doc.font("Kanit-Bold").fontSize(14).text("NiYAIFREE", 60, doc.page.height - 140, {
+        align: "center",
+        width: doc.page.width - 120,
+      });
+      doc.font("Sarabun").fontSize(10).text("niyaifree.com", {
+        align: "center",
+        width: doc.page.width - 120,
+      });
+
+      // ---- TABLE OF CONTENTS ----
+      doc.addPage();
+      doc.fill("#1a1a1a");
+      doc.font("Kanit-Bold").fontSize(24).text("สารบัญ", { align: "center" });
+      doc.moveDown(1.5);
+      for (const ch of chapters) {
+        const chTitle = ch.title ? `ตอนที่ ${ch.chapterNumber} — ${ch.title}` : `ตอนที่ ${ch.chapterNumber}`;
+        doc.font("Sarabun").fontSize(12).text(chTitle, { continued: false });
+        doc.moveDown(0.3);
+        if (doc.y > doc.page.height - 100) {
+          doc.addPage();
+        }
+      }
+
+      // ---- CHAPTERS ----
+      for (const ch of chapters) {
+        doc.addPage();
+        // Chapter header
+        doc.fill("#E8453C");
+        const chTitle = ch.title ? `ตอนที่ ${ch.chapterNumber} — ${ch.title}` : `ตอนที่ ${ch.chapterNumber}`;
+        doc.font("Kanit-Bold").fontSize(20).text(chTitle, { align: "center" });
+        doc.moveDown(1);
+        // Divider line
+        doc.moveTo(60, doc.y).lineTo(doc.page.width - 60, doc.y).strokeColor("#E8453C").lineWidth(1).stroke();
+        doc.moveDown(1);
+
+        // Chapter content
+        doc.fill("#333333");
+        const content = (ch.content || "").replace(/[#*]/g, "").trim();
+        const paragraphs = content.split(/\n\n|\n/);
+        for (const para of paragraphs) {
+          const trimmed = para.trim();
+          if (!trimmed) continue;
+          doc.font("Sarabun").fontSize(13).text(trimmed, {
+            align: "left",
+            lineGap: 6,
+            paragraphGap: 8,
+          });
+          doc.moveDown(0.5);
+          if (doc.y > doc.page.height - 100) {
+            doc.addPage();
+          }
+        }
+      }
+
+      // ---- COPYRIGHT PAGE ----
+      doc.addPage();
+      doc.fill("#E8453C");
+      doc.font("Kanit-Bold").fontSize(18).text("คำเตือนเรื่องลิขสิทธิ์", { align: "center" });
+      doc.moveDown(1);
+      doc.fill("#333333");
+      doc.font("Sarabun").fontSize(11).text(
+        `ห้ามคัดลอก ทำซ้ำ ดัดแปลง เผยแพร่ หรือจำหน่ายเนื้อหาในหนังสือเล่มนี้ ` +
+        `ไม่ว่าทั้งหมดหรือบางส่วน โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร ` +
+        `จากบริษัท ตามพระราชบัญญัติลิขสิทธิ์ พ.ศ. 2537 และกฎหมายที่เกี่ยวข้อง\n\n` +
+        `ผู้ฝ่าฝืนจะถูกดำเนินคดีตามกฎหมายสูงสุด`,
+        { align: "center", lineGap: 6 }
+      );
+      doc.moveDown(2);
+      doc.font("Sarabun").fontSize(10).fillColor("#999999").text(
+        `สร้างโดย NiYAIFREE — niyaifree.com\n` +
+        `วันที่สร้าง: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}`,
+        { align: "center" }
+      );
+
+      // Add footer to all pages
+      const pageCount = doc.bufferedPageRange().count;
+      for (let i = 0; i < pageCount; i++) {
+        doc.switchToPage(i);
+        doc.font("Sarabun").fontSize(8).fillColor("#AAAAAA");
+        if (i > 0) { // Skip cover page
+          doc.text(
+            `${novel.title} — NiYAIFREE.com | หน้า ${i}/${pageCount - 1}`,
+            60, doc.page.height - 50,
+            { align: "center", width: doc.page.width - 120 }
+          );
+        }
+      }
+
+      doc.end();
+      await logAudit(req.user.id, "download_ebook_pdf", "novel", novelId, { title: novel.title });
+    } catch (e: any) {
+      console.error("PDF generation error:", e);
+      if (!res.headersSent) res.status(500).json({ error: "สร้าง PDF ไม่สำเร็จ: " + e.message });
+    }
+  });
+
+  // Check if user can download a specific novel (for frontend button state)
+  app.get("/api/ebook/check/:novelId", authMiddleware(), async (req: any, res) => {
+    try {
+      const novelId = parseInt(req.params.novelId);
+      const [user]: any = await pool.execute("SELECT coins, vipUntil, vipEbookDownloads, vipEbookLimit FROM users WHERE id=?", [req.user.id]);
+      const u = user[0];
+      const isVip = u.vipUntil && new Date(u.vipUntil) > new Date();
+      const [costRow]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='coin_per_ebook'");
+      const coinCost = parseInt(costRow[0]?.settingValue || "10");
+
+      // Check if already purchased
+      const [existing]: any = await pool.execute(
+        "SELECT id FROM ebook_downloads WHERE userId=? AND novelId=? AND createdAt > DATE_SUB(NOW(), INTERVAL 30 DAY) LIMIT 1",
+        [req.user.id, novelId]
+      );
+      const alreadyPurchased = existing.length > 0;
+
+      // Count chapters
+      const [chCount]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters WHERE novelId=?", [novelId]);
+
+      res.json({
+        alreadyPurchased,
+        isVip,
+        vipDownloadsUsed: u.vipEbookDownloads || 0,
+        vipDownloadsLimit: u.vipEbookLimit || 10,
+        coins: u.coins || 0,
+        coinCost,
+        chapterCount: chCount[0]?.c || 0,
+      });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

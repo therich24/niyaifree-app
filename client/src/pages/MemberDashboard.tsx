@@ -121,6 +121,24 @@ export default function MemberDashboard() {
               </div>
             </div>
 
+            {/* eBook Library Quick Link */}
+            <Link href="/member/ebooks" className="no-underline">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Download className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold font-[Kanit] text-white text-lg">คลัง eBook ของฉัน</h3>
+                      <p className="text-white/80 text-sm">ดาวน์โหลด eBook เป็น PDF ได้ที่นี่</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-white/60" />
+                </div>
+              </div>
+            </Link>
+
             {/* Recent History */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-4">
