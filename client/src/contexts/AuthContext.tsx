@@ -11,6 +11,8 @@ interface User {
   lastName: string;
   role: string;
   points: number;
+  coins: number;
+  vipUntil: string | null;
   freeReadUntil: string | null;
   referralCode: string;
 }

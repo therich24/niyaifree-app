@@ -54,6 +54,16 @@ export const api = {
   getReadingHistory: () => request("/member/reading-history"),
   usePoints: (body: any) => request("/member/use-points", { method: "POST", body: JSON.stringify(body) }),
   earnPoints: (type: string) => request("/member/earn-points", { method: "POST", body: JSON.stringify({ type }) }),
+  updateProfile: (body: any) => request("/member/profile", { method: "PUT", body: JSON.stringify(body) }),
+  changePassword: (body: any) => request("/member/change-password", { method: "POST", body: JSON.stringify(body) }),
+  getPointHistory: () => request("/member/point-history"),
+
+  // VIP & Coins
+  subscribeVip: (body: any) => request("/member/subscribe-vip", { method: "POST", body: JSON.stringify(body) }),
+  purchaseCoins: (body: any) => request("/member/purchase-coins", { method: "POST", body: JSON.stringify(body) }),
+  getCoinHistory: () => request("/member/coin-history"),
+  downloadEbook: (body: any) => request("/member/download-ebook", { method: "POST", body: JSON.stringify(body) }),
+  getDownloadHistory: () => request("/member/download-history"),
 
   // Admin
   getStats: () => request("/admin/stats"),
@@ -75,4 +85,14 @@ export const api = {
   aiGenerateChapters: (body: any) => request("/admin/ai-generate-chapters", { method: "POST", body: JSON.stringify(body) }),
   proofread: (body: any) => request("/admin/proofread", { method: "POST", body: JSON.stringify(body) }),
   getJobs: () => request("/admin/jobs"),
+  adjustUserCoins: (id: number, body: any) => request(`/admin/users/${id}/coins`, { method: "POST", body: JSON.stringify(body) }),
+
+  // CEO
+  ceoLogin: (body: any) => request("/ceo/login", { method: "POST", body: JSON.stringify(body) }),
+  ceoStats: () => request("/ceo/stats"),
+  getAuditLogs: (params?: Record<string, string>) => request(`/ceo/audit-logs?${new URLSearchParams(params || {})}`),
+  getFinancials: () => request("/ceo/financials"),
+  getAllUsers: (params?: Record<string, string>) => request(`/ceo/users?${new URLSearchParams(params || {})}`),
+  ceoUpdateUser: (id: number, body: any) => request(`/ceo/users/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  ceoCreateUser: (body: any) => request("/ceo/users", { method: "POST", body: JSON.stringify(body) }),
 };

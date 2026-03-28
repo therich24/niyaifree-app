@@ -1,156 +1,173 @@
-/**
- * Design: Koparion Reborn — Green/Orange Book Shop
- * Layout: Hero → Categories → Featured → Popular → Latest → Promo
- * Toast: error notifications when data fetch fails
- */
+/*
+  NiYAIFREE Home Page — Noraure/Boake Book Store Style
+  Clean white bg, coral red accent, book card grid with hover actions
+  Sections: Announcement → Hero → Categories → Featured → Special Offer → Popular → Trust → Copyright
+*/
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { api } from "@/lib/api";
 import BookCard from "@/components/BookCard";
-import { ChevronRight, Sparkles, TrendingUp, Clock, BookOpen, Users, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { BookOpen, ChevronRight, Star, Truck, Shield, Tag, RotateCcw, Sparkles, TrendingUp, Clock, Heart } from "lucide-react";
 
-const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-dhg4wq4HwAVcainEMTnvn7.webp";
-const PROMO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/promo-banner-9UxgNfesR6ZAXkdruvFDYS.webp";
-
-const GENRE_IMAGES: Record<string, string> = {
-  "Fantasy": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-fantasy-cSCciZvfsbLSGWNbznjai7.webp",
-  "Romance": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-romance-hBdu4LhsQJxmiwTXbstpgW.webp",
-  "Action": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-action-iSofNfva6rCFYnQYiBhL6u.webp",
+const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-dhg4wq4HwAVcainEMTnvn7.webp";
+const PROMO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/promo-banner-9UxgNfesR6ZAXkdruvFDYS.webp";
+const GENRE_IMGS: Record<string, string> = {
+  "แฟนตาซี": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-fantasy-cSCciZvfsbLSGWNbznjai7.webp",
+  "โรแมนติก": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-romance-hBdu4LhsQJxmiwTXbstpgW.webp",
+  "แอ็คชั่น": "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/genre-action-iSofNfva6rCFYnQYiBhL6u.webp",
 };
 
-const ALL_GENRES = [
-  { name: "Romance", icon: "💕", color: "#E91E63" },
-  { name: "CEO", icon: "👔", color: "#607D8B" },
-  { name: "Mafia", icon: "🔫", color: "#37474F" },
-  { name: "BL", icon: "🌈", color: "#9C27B0" },
-  { name: "Fantasy", icon: "🐉", color: "#1B5E20" },
-  { name: "System", icon: "⚡", color: "#FF6F00" },
-  { name: "เกิดใหม่", icon: "🔄", color: "#00BCD4" },
-  { name: "Horror", icon: "👻", color: "#B71C1C" },
-  { name: "ดราม่า", icon: "🎭", color: "#5D4037" },
-  { name: "คอมเมดี้", icon: "😂", color: "#FFC107" },
-  { name: "ลึกลับ", icon: "🔍", color: "#3F51B5" },
-  { name: "ผจญภัย", icon: "⚔️", color: "#FF5722" },
+const CATEGORIES = [
+  { name: "แฟนตาซี", icon: "🐉" },
+  { name: "โรแมนติก", icon: "💕" },
+  { name: "แอ็คชั่น", icon: "⚔️" },
+  { name: "ดราม่า", icon: "🎭" },
+  { name: "สยองขวัญ", icon: "👻" },
+  { name: "ลึกลับ", icon: "🔍" },
+  { name: "ตลก", icon: "😂" },
+  { name: "Sci-Fi", icon: "🚀" },
+  { name: "จีนกำลังภายใน", icon: "🥋" },
+  { name: "อิเซไก", icon: "🌀" },
 ];
 
 export default function Home() {
+  const [novels, setNovels] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any[]>([]);
   const [popular, setPopular] = useState<any[]>([]);
-  const [latest, setLatest] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [stats, setStats] = useState({ novels: 0, chapters: 0, views: 0, users: 0 });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("featured");
 
   useEffect(() => {
-    let errorCount = 0;
-    const onError = () => {
-      errorCount++;
-      if (errorCount === 1) {
-        toast.error("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
-      }
-    };
-
-    Promise.allSettled([
-      api.getNovels({ featured: "true", limit: "6" }).then(d => setFeatured(d.novels)).catch(onError),
-      api.getNovels({ sort: "popular", limit: "12" }).then(d => setPopular(d.novels)).catch(onError),
-      api.getNovels({ sort: "newest", limit: "12" }).then(d => { setLatest(d.novels); setStats(s => ({ ...s, novels: d.total })); }).catch(onError),
-      api.getCategories().then(setCategories).catch(onError),
-    ]).finally(() => setLoading(false));
+    loadData();
   }, []);
 
+  async function loadData() {
+    try {
+      const [novelsRes, featuredRes, popularRes, catRes] = await Promise.all([
+        api.getNovels({ sort: "newest", limit: "8" }),
+        api.getNovels({ featured: "true", limit: "8" }),
+        api.getNovels({ sort: "popular", limit: "8" }),
+        api.getCategories(),
+      ]);
+      setNovels(novelsRes.novels || []);
+      setFeatured(featuredRes.novels || []);
+      setPopular(popularRes.novels || []);
+      setCategories(catRes || []);
+    } catch (e: any) {
+      toast.error("โหลดข้อมูลไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const tabNovels = activeTab === "featured" ? featured : activeTab === "popular" ? popular : novels;
+
   return (
-    <div className="min-h-screen">
-      {/* ===== HERO SECTION ===== */}
-      <section className="relative h-[420px] md:h-[480px] overflow-hidden">
-        <img src={HERO_BG} alt="NiYAIFREE Hero" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.20 0.08 155 / 0.85), oklch(0.15 0.04 155 / 0.7))" }} />
-        <div className="relative container h-full flex items-center">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white mb-4" style={{ background: "oklch(0.72 0.16 60)" }}>
-              <Sparkles className="w-3 h-3" /> อ่านฟรี 100% ไม่มีค่าใช้จ่าย
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4" style={{ fontFamily: "Kanit" }}>
-              อ่านนิยายฟรี<br />
-              <span style={{ color: "oklch(0.82 0.16 60)" }}>ครบทุกแนว ทุกอารมณ์</span>
-            </h1>
-            <p className="text-white/80 text-lg mb-6 leading-relaxed">
-              Romance, Fantasy, BL, Horror และอีกมากมาย<br />
-              อัปเดตทุกวัน กว่าหลายพันเรื่อง
-            </p>
-            <div className="flex gap-3">
-              <Link href="/genre/popular">
-                <Button size="lg" className="text-white font-semibold shadow-lg" style={{ background: "oklch(0.72 0.16 60)" }}>
-                  <TrendingUp className="w-4 h-4 mr-2" /> เรื่องมาแรง
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="lg" variant="outline" className="text-white border-white/30 hover:bg-white/10 bg-transparent font-semibold">
-                  สมัครฟรี
-                </Button>
-              </Link>
-            </div>
-          </div>
+    <div className="min-h-screen bg-white">
+      {/* Announcement Bar */}
+      <div className="bg-primary text-white text-center py-2.5 text-sm font-medium tracking-wide">
+        <div className="container flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          <span>สมัครสมาชิกวันนี้ อ่านฟรี 7 วัน + รับแต้ม 100 แต้ม!</span>
+          <Link href="/register" className="underline font-bold ml-2 hover:text-white/80">สมัครเลย →</Link>
         </div>
-      </section>
+      </div>
 
-      {/* ===== STATS BAR ===== */}
-      <section className="py-4 border-b" style={{ background: "oklch(0.97 0.005 155)" }}>
-        <div className="container flex justify-center gap-8 md:gap-16 text-center">
-          <div>
-            <p className="text-2xl font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.40 0.12 155)" }}>{stats.novels || "1,000"}+</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><BookOpen className="w-3 h-3" /> เรื่อง</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.40 0.12 155)" }}>30,000+</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><Eye className="w-3 h-3" /> ตอน</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.40 0.12 155)" }}>FREE</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> อ่านฟรี</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== GENRE SECTION ===== */}
-      <section className="py-10">
-        <div className="container">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.25 0.06 155)" }}>
-              หมวดหมู่นิยาย
-            </h2>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
-            {ALL_GENRES.map(g => {
-              const count = categories.find((c: any) => c.category === g.name)?.count || 0;
-              return (
-                <Link key={g.name} href={`/genre/${encodeURIComponent(g.name)}`} className="no-underline">
-                  <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:shadow-md transition-all hover:-translate-y-1 bg-white border border-border/50">
-                    <span className="text-2xl">{g.icon}</span>
-                    <span className="text-xs font-semibold text-foreground" style={{ fontFamily: "Kanit" }}>{g.name}</span>
-                    {count > 0 && <span className="text-[10px] text-muted-foreground">{count} เรื่อง</span>}
-                  </div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-white">
+        <div className="container py-12 lg:py-20">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold">
+                <BookOpen className="w-4 h-4" />
+                แพลตฟอร์มอ่านนิยายฟรี
+              </div>
+              <h1 className="text-4xl lg:text-6xl font-bold leading-tight font-[Kanit] text-slate-900">
+                อ่านนิยาย<br />
+                <span className="text-primary">ฟรี</span> ทุกเรื่อง<br />
+                ทุกที่ ทุกเวลา
+              </h1>
+              <p className="text-lg text-slate-600 max-w-md leading-relaxed">
+                คลังนิยายหลากหลายแนว อัปเดตทุกวัน อ่านฟรีไม่มีค่าใช้จ่าย
+                สมัครสมาชิกรับสิทธิพิเศษมากมาย
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/search" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3.5 rounded-lg font-semibold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/25">
+                  เริ่มอ่านเลย
+                  <ChevronRight className="w-5 h-5" />
                 </Link>
-              );
-            })}
+                <Link href="/register" className="inline-flex items-center gap-2 border-2 border-slate-300 text-slate-700 px-8 py-3.5 rounded-lg font-semibold text-lg hover:border-primary hover:text-primary transition-all">
+                  สมัครสมาชิก
+                </Link>
+              </div>
+              <div className="flex items-center gap-6 pt-2 text-sm text-slate-500">
+                <span className="flex items-center gap-1"><BookOpen className="w-4 h-4 text-primary" /> 1,000+ เรื่อง</span>
+                <span className="flex items-center gap-1"><Star className="w-4 h-4 text-amber-400" /> คุณภาพดี</span>
+                <span className="flex items-center gap-1"><Heart className="w-4 h-4 text-pink-400" /> ฟรี 100%</span>
+              </div>
+            </div>
+            <div className="relative">
+              <img src={HERO_IMG} alt="NiYAIFREE Hero" className="w-full rounded-2xl shadow-2xl" />
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-4 flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">ยอดอ่านวันนี้</p>
+                  <p className="text-xs text-slate-500">10,000+ ครั้ง</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ===== GENRE SHOWCASE (3 cards with images) ===== */}
-      <section className="py-8" style={{ background: "oklch(0.96 0.005 85)" }}>
+      {/* Category Marquee */}
+      <section className="py-8 border-y border-slate-100 bg-slate-50/50 overflow-hidden">
+        <div className="flex animate-marquee whitespace-nowrap">
+          {[...CATEGORIES, ...CATEGORIES].map((cat, i) => (
+            <Link key={i} href={`/genre/${cat.name}`} className="inline-flex items-center gap-2 mx-4 px-6 py-3 bg-white rounded-full shadow-sm border border-slate-100 hover:border-primary hover:shadow-md transition-all text-sm font-medium text-slate-700 hover:text-primary shrink-0">
+              <span className="text-lg">{cat.icon}</span>
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Genre Cards */}
+      <section className="py-16 bg-white">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(GENRE_IMAGES).map(([name, img]) => (
-              <Link key={name} href={`/genre/${encodeURIComponent(name)}`} className="no-underline">
-                <div className="relative h-48 rounded-xl overflow-hidden group">
-                  <img src={img} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-xl font-bold" style={{ fontFamily: "Kanit" }}>{name}</h3>
-                    <p className="text-sm text-white/80">ดูทั้งหมด</p>
+          <h2 className="section-title">หมวดหมู่ยอดนิยม</h2>
+          <p className="text-center text-slate-500 mb-10">เลือกอ่านนิยายตามแนวที่ชอบ</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {CATEGORIES.slice(0, 5).map((cat) => (
+              <Link key={cat.name} href={`/genre/${cat.name}`} className="group relative overflow-hidden rounded-xl aspect-[4/3] bg-slate-100">
+                {GENRE_IMGS[cat.name] ? (
+                  <img src={GENRE_IMGS[cat.name]} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <span className="text-5xl">{cat.icon}</span>
                   </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3 className="text-white font-bold text-lg font-[Kanit]">{cat.name}</h3>
+                  <p className="text-white/70 text-sm">
+                    {categories.find(c => c.category === cat.name)?.count || 0} เรื่อง
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
+            {CATEGORIES.slice(5).map((cat) => (
+              <Link key={cat.name} href={`/genre/${cat.name}`} className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl hover:bg-primary/5 hover:border-primary border border-transparent transition-all">
+                <span className="text-2xl">{cat.icon}</span>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">{cat.name}</p>
+                  <p className="text-xs text-slate-500">{categories.find(c => c.category === cat.name)?.count || 0} เรื่อง</p>
                 </div>
               </Link>
             ))}
@@ -158,99 +175,169 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== FEATURED ===== */}
-      {featured.length > 0 && (
-        <section className="py-10">
-          <div className="container">
-            <SectionHeader title="แนะนำสำหรับคุณ" icon={<Sparkles className="w-5 h-5" />} href="/genre/featured" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {featured.map((n: any) => <BookCard key={n.id} novel={n} />)}
+      {/* Popular Collections (Tabbed) */}
+      <section className="py-16 bg-slate-50/50">
+        <div className="container">
+          <h2 className="section-title">คอลเลกชันยอดนิยม</h2>
+          <p className="text-center text-slate-500 mb-8">เลือกอ่านนิยายคุณภาพ คัดสรรมาเพื่อคุณ</p>
+          <div className="flex justify-center gap-2 mb-10">
+            {[
+              { key: "featured", label: "แนะนำ", icon: Star },
+              { key: "popular", label: "ยอดนิยม", icon: TrendingUp },
+              { key: "newest", label: "มาใหม่", icon: Clock },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                  activeTab === tab.key
+                    ? "bg-primary text-white shadow-lg shadow-primary/25"
+                    : "bg-white text-slate-600 border border-slate-200 hover:border-primary hover:text-primary"
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-slate-200 rounded-xl mb-3" />
+                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-slate-200 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {tabNovels.slice(0, 8).map((novel: any) => (
+                <BookCard key={novel.id} novel={novel} />
+              ))}
+            </div>
+          )}
+
+          {tabNovels.length === 0 && !loading && (
+            <div className="text-center py-16 text-slate-400">
+              <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg">ยังไม่มีนิยายในหมวดนี้</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Special Offer Banner */}
+      <section className="py-16 bg-gradient-to-r from-slate-900 to-slate-800 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <img src={PROMO_IMG} alt="promo" className="w-full h-full object-cover" />
+        </div>
+        <div className="container relative z-10">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <img src={PROMO_IMG} alt="Special Offer" className="w-full max-w-md mx-auto rounded-2xl shadow-2xl" />
+            </div>
+            <div className="text-white space-y-6">
+              <span className="inline-block bg-primary px-4 py-1 rounded-full text-sm font-bold">โปรโมชั่นพิเศษ</span>
+              <h2 className="text-4xl lg:text-5xl font-bold font-[Kanit] leading-tight">
+                สมัคร VIP<br />
+                <span className="text-primary">฿100/เดือน</span>
+              </h2>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs">✓</div>
+                  อ่านนิยายยาวเกิน 30 ตอนได้ทุกเรื่อง
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs">✓</div>
+                  โหลด eBook เป็นรูปเล่มได้ 10 เล่ม/เดือน
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs">✓</div>
+                  ไม่มีโฆษณา อ่านสบายตา
+                </li>
+              </ul>
+              <Link href="/vip" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3.5 rounded-lg font-bold text-lg hover:bg-primary/90 transition-all shadow-lg">
+                สมัคร VIP เลย
+                <ChevronRight className="w-5 h-5" />
+              </Link>
             </div>
           </div>
-        </section>
-      )}
-
-      {/* ===== POPULAR ===== */}
-      <section className="py-10" style={{ background: "oklch(0.97 0.005 155)" }}>
-        <div className="container">
-          <SectionHeader title="นิยายมาแรง" icon={<TrendingUp className="w-5 h-5" />} href="/genre/popular" color="oklch(0.72 0.16 60)" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {popular.length > 0 ? popular.map((n: any) => <BookCard key={n.id} novel={n} />) : (
-              loading ? Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />) :
-              <p className="col-span-full text-center text-muted-foreground py-8">ยังไม่มีนิยาย</p>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* ===== LATEST ===== */}
-      <section className="py-10">
+      {/* Latest Updates */}
+      <section className="py-16 bg-white">
         <div className="container">
-          <SectionHeader title="อัปเดตล่าสุด" icon={<Clock className="w-5 h-5" />} href="/genre/newest" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {latest.length > 0 ? latest.map((n: any) => <BookCard key={n.id} novel={n} />) : (
-              loading ? Array.from({ length: 6 }).map((_, i) => <BookCardSkeleton key={i} />) :
-              <p className="col-span-full text-center text-muted-foreground py-8">ยังไม่มีนิยาย</p>
-            )}
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-3xl font-bold font-[Kanit] text-slate-900">อัปเดตล่าสุด</h2>
+              <p className="text-slate-500 mt-1">นิยายที่เพิ่งอัปเดตตอนใหม่</p>
+            </div>
+            <Link href="/search?sort=newest" className="text-primary font-semibold hover:underline flex items-center gap-1">
+              ดูทั้งหมด <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-slate-200 rounded-xl mb-3" />
+                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-slate-200 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {novels.slice(0, 8).map((novel: any) => (
+                <BookCard key={novel.id} novel={novel} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ===== PROMO BANNER ===== */}
-      <section className="py-0">
+      {/* Trust Badges */}
+      <section className="py-12 border-t border-slate-100 bg-slate-50/50">
         <div className="container">
-          <div className="relative h-48 md:h-56 rounded-2xl overflow-hidden">
-            <img src={PROMO_BG} alt="Promo" className="w-full h-full object-cover" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, oklch(0.25 0.08 155 / 0.9), transparent)" }} />
-            <div className="absolute inset-0 flex items-center">
-              <div className="container">
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2" style={{ fontFamily: "Kanit" }}>
-                  สมัครสมาชิกฟรี
-                </h2>
-                <p className="text-white/80 mb-4">รับแต้มฟรี 100 แต้ม + อ่านฟรี 7 วัน</p>
-                <Link href="/register">
-                  <Button className="text-white font-semibold" style={{ background: "oklch(0.72 0.16 60)" }}>
-                    สมัครเลย
-                  </Button>
-                </Link>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { icon: BookOpen, title: "อ่านฟรี", desc: "นิยายฟรีมากมาย" },
+              { icon: Shield, title: "ปลอดภัย", desc: "ระบบรักษาความปลอดภัย" },
+              { icon: Tag, title: "ราคาดี", desc: "VIP เพียง ฿100/เดือน" },
+              { icon: RotateCcw, title: "อัปเดตทุกวัน", desc: "เนื้อหาใหม่ทุกวัน" },
+            ].map((badge, i) => (
+              <div key={i} className="flex items-center gap-4 p-5 bg-white rounded-xl border border-slate-100">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                  <badge.icon className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">{badge.title}</p>
+                  <p className="text-sm text-slate-500">{badge.desc}</p>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Spacer */}
-      <div className="h-8" />
-    </div>
-  );
-}
-
-function SectionHeader({ title, icon, href, color }: { title: string; icon: React.ReactNode; href: string; color?: string }) {
-  return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md" style={{ background: (color || "oklch(0.40 0.12 155)") + " / 0.1", color: color || "oklch(0.40 0.12 155)" }}>
-          {icon}
+      {/* Copyright Warning */}
+      <section className="py-8 bg-red-50/50">
+        <div className="container">
+          <div className="copyright-banner flex items-start gap-3">
+            <Shield className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-red-900 mb-1">คำเตือนเรื่องลิขสิทธิ์</p>
+              <p className="text-red-700 text-sm leading-relaxed">
+                ห้ามกอปปี้ คัดลอก ทำซ้ำ ดัดแปลง เผยแพร่ จำหน่าย โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษรจากบริษัท
+                ตามกฎหมายลิขสิทธิ์ไทย พ.ร.บ.ลิขสิทธิ์ พ.ศ. 2537 ผู้ฝ่าฝืนมีโทษจำคุกไม่เกิน 4 ปี หรือปรับไม่เกิน 800,000 บาท หรือทั้งจำทั้งปรับ
+              </p>
+            </div>
+          </div>
         </div>
-        <h2 className="text-xl font-bold" style={{ fontFamily: "Kanit", color: "oklch(0.25 0.06 155)" }}>
-          {title}
-        </h2>
-      </div>
-      <Link href={href} className="text-sm font-medium flex items-center gap-1 no-underline" style={{ color: color || "oklch(0.40 0.12 155)" }}>
-        ดูทั้งหมด <ChevronRight className="w-4 h-4" />
-      </Link>
-    </div>
-  );
-}
-
-function BookCardSkeleton() {
-  return (
-    <div className="animate-pulse">
-      <div className="h-56 rounded-lg bg-muted" />
-      <div className="mt-2.5 space-y-2">
-        <div className="h-4 bg-muted rounded w-3/4" />
-        <div className="h-3 bg-muted rounded w-1/2" />
-      </div>
+      </section>
     </div>
   );
 }

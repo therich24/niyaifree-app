@@ -1,10 +1,9 @@
-/**
- * Design: Koparion Reborn — Book card with hover lift effect and orange ribbon
- * Covers: If no cover, show black placeholder with title
- * Click cover to expand (lightbox)
- */
+/*
+  NiYAIFREE BookCard — Noraure/Boake Style
+  Clean white card, hover reveals action buttons, coral sale badge
+*/
 import { Link } from "wouter";
-import { Eye, Heart, BookOpen } from "lucide-react";
+import { Eye, Heart, BookOpen, Star, Bookmark } from "lucide-react";
 import { useState } from "react";
 
 interface BookCardProps {
@@ -20,82 +19,108 @@ interface BookCardProps {
     likeCount: number;
     ageRating?: string;
     status?: string;
+    isFeatured?: boolean;
   };
   size?: "sm" | "md" | "lg";
 }
 
 export default function BookCard({ novel, size = "md" }: BookCardProps) {
-  const [lightbox, setLightbox] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const coverH = size === "lg" ? "h-72" : size === "sm" ? "h-44" : "h-56";
 
   return (
-    <>
-      <div className="book-card group relative">
-        <Link href={`/novel/${novel.slug}`} className="no-underline block">
-          {/* Cover */}
-          <div className={`relative ${coverH} rounded-lg overflow-hidden shadow-md`}>
-            {novel.coverUrl ? (
-              <img
-                src={novel.coverUrl}
-                alt={novel.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLightbox(true); }}
-              />
-            ) : (
-              <div className="w-full h-full bg-black flex items-center justify-center p-3">
-                <span className="text-white text-center text-sm font-medium leading-snug" style={{ fontFamily: "Kanit" }}>
-                  {novel.title}
-                </span>
-              </div>
-            )}
+    <div
+      className="group relative bg-white rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Link href={`/novel/${novel.slug}`} className="no-underline block">
+        {/* Cover Image */}
+        <div className={`relative ${coverH} overflow-hidden`}>
+          {novel.coverUrl ? (
+            <img
+              src={novel.coverUrl}
+              alt={novel.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
+              <span className="text-white text-center text-sm font-semibold leading-snug font-[Kanit]">
+                {novel.title}
+              </span>
+            </div>
+          )}
 
-            {/* Status ribbon */}
-            {novel.status === "writing" && (
-              <div className="absolute top-2 left-0 px-2 py-0.5 text-[10px] font-bold text-white rounded-r-md" style={{ background: "oklch(0.72 0.16 60)" }}>
-                กำลังเขียน
-              </div>
-            )}
+          {/* Sale/Status Badge */}
+          {novel.status === "writing" && (
+            <div className="sale-badge bg-amber-500">กำลังเขียน</div>
+          )}
+          {novel.status === "completed" && (
+            <div className="sale-badge bg-emerald-500">จบแล้ว</div>
+          )}
+          {novel.isFeatured && (
+            <div className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded z-10">
+              <Star className="w-3 h-3 inline mr-0.5" />แนะนำ
+            </div>
+          )}
 
-            {/* Age rating badge */}
-            {novel.ageRating && novel.ageRating !== "ทั่วไป" && (
-              <div className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-600 rounded">
-                {novel.ageRating}
-              </div>
-            )}
+          {/* Age Rating */}
+          {novel.ageRating && novel.ageRating !== "ทั่วไป" && (
+            <div className="absolute bottom-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
+              {novel.ageRating}
+            </div>
+          )}
 
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5" style={{ color: "oklch(0.40 0.12 155)" }} />
-                </div>
-              </div>
+          {/* Hover Action Buttons */}
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300 ${hovered ? "opacity-100" : "opacity-0"}`}>
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+              <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary hover:text-white transition-colors" title="เพิ่มที่คั่น" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Bookmark className="w-4 h-4" />
+              </button>
+              <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary hover:text-white transition-colors" title="ถูกใจ" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Heart className="w-4 h-4" />
+              </button>
+              <button className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors" title="อ่านเลย">
+                <BookOpen className="w-4 h-4" />
+              </button>
             </div>
           </div>
-
-          {/* Info */}
-          <div className="mt-2.5 px-0.5">
-            <h3 className="text-sm font-semibold line-clamp-2 leading-snug text-foreground" style={{ fontFamily: "Kanit" }}>
-              {novel.title}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">{novel.author}</p>
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-              <span className="genre-pill !px-2 !py-0.5 !text-[10px]">{novel.category}</span>
-              <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> {formatNum(novel.viewCount)}</span>
-              <span className="flex items-center gap-0.5"><BookOpen className="w-3 h-3" /> {novel.totalChapters} ตอน</span>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Lightbox */}
-      {lightbox && novel.coverUrl && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(false)}>
-          <img src={novel.coverUrl} alt={novel.title} className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" />
         </div>
-      )}
-    </>
+
+        {/* Info */}
+        <div className="p-3">
+          <h3 className="text-sm font-semibold line-clamp-2 leading-snug text-slate-900 font-[Kanit] group-hover:text-primary transition-colors">
+            {novel.title}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">{novel.author}</p>
+
+          {/* Star Rating */}
+          <div className="flex items-center gap-0.5 mt-1.5">
+            {[1, 2, 3, 4, 5].map(s => (
+              <Star key={s} className={`w-3 h-3 ${s <= 4 ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} />
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3" /> {formatNum(novel.viewCount)}
+            </span>
+            <span className="flex items-center gap-1">
+              <BookOpen className="w-3 h-3" /> {novel.totalChapters} ตอน
+            </span>
+          </div>
+
+          {/* Category Tag */}
+          <div className="mt-2">
+            <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full font-medium">
+              {novel.category}
+            </span>
+          </div>
+        </div>
+      </Link>
+    </div>
   );
 }
 

@@ -44,6 +44,13 @@ async function startServer() {
     };
   }
 
+  async function logAudit(userId: number, action: string, targetType?: string, targetId?: number, details?: any) {
+    try {
+      await pool.execute("INSERT INTO audit_logs (userId, action, targetType, targetId, details) VALUES (?, ?, ?, ?, ?)",
+        [userId, action, targetType || null, targetId || null, details ? JSON.stringify(details) : null]);
+    } catch {}
+  }
+
   // ============ AUTH ROUTES ============
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -65,7 +72,6 @@ async function startServer() {
         [memberId, username, email, hash, firstName || "", lastName || "", phone || "", province || "", signupPoints, freeUntil, myReferral]
       );
 
-      // Handle referral
       if (referralCode) {
         const [referrer]: any = await pool.execute("SELECT id FROM users WHERE referralCode=?", [referralCode]);
         if (referrer.length > 0) {
@@ -76,7 +82,6 @@ async function startServer() {
         }
       }
 
-      // Log signup points
       const [newUser]: any = await pool.execute("SELECT id FROM users WHERE username=?", [username]);
       await pool.execute("INSERT INTO point_transactions (userId, amount, type, description) VALUES (?, ?, 'signup', 'แต้มสมัครสมาชิกใหม่')", [newUser[0].id, signupPoints]);
 
@@ -100,14 +105,134 @@ async function startServer() {
       if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: "รหัสผ่านไม่ถูกต้อง" });
       await pool.execute("UPDATE users SET lastLoginAt=NOW() WHERE id=?", [user.id]);
       const token = await createToken(user);
-      res.json({ success: true, token, user: { id: user.id, memberId: user.memberId, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, points: user.points, freeReadUntil: user.freeReadUntil, referralCode: user.referralCode } });
+      res.json({ success: true, token, user: { id: user.id, memberId: user.memberId, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, points: user.points, coins: user.coins || 0, vipUntil: user.vipUntil, freeReadUntil: user.freeReadUntil, referralCode: user.referralCode, avatarUrl: user.avatarUrl, bio: user.bio } });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.get("/api/auth/me", authMiddleware(), async (req: any, res) => {
-    const [rows]: any = await pool.execute("SELECT id, memberId, username, email, firstName, lastName, phone, province, role, points, freeReadUntil, referralCode, createdAt FROM users WHERE id=?", [req.user.id]);
+    const [rows]: any = await pool.execute("SELECT id, memberId, username, email, firstName, lastName, phone, province, role, points, coins, vipUntil, vipEbookDownloads, vipEbookLimit, freeReadUntil, referralCode, avatarUrl, bio, createdAt FROM users WHERE id=?", [req.user.id]);
     if (rows.length === 0) return res.status(404).json({ error: "Not found" });
     res.json(rows[0]);
+  });
+
+  // ============ CEO LOGIN (SEPARATE) ============
+  app.post("/api/ceo/login", async (req, res) => {
+    try {
+      const { login, password } = req.body;
+      const [rows]: any = await pool.execute(
+        "SELECT * FROM users WHERE (username=? OR email=? OR memberId=?) AND role='ceo'",
+        [login, login, login.toUpperCase()]
+      );
+      if (rows.length === 0) return res.status(401).json({ error: "ไม่พบบัญชี CEO" });
+      const user = rows[0];
+      if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+      await pool.execute("UPDATE users SET lastLoginAt=NOW() WHERE id=?", [user.id]);
+      const token = await createToken(user);
+      await logAudit(user.id, "ceo_login", "user", user.id);
+      res.json({ success: true, token, user: { id: user.id, memberId: user.memberId, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, points: user.points, coins: user.coins || 0 } });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============ CEO ROUTES ============
+  app.get("/api/ceo/stats", authMiddleware(["ceo"]), async (_req, res) => {
+    try {
+      const [users]: any = await pool.execute("SELECT COUNT(*) as c FROM users");
+      const [novels]: any = await pool.execute("SELECT COUNT(*) as c FROM novels");
+      const [chapters]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters");
+      const [views]: any = await pool.execute("SELECT SUM(viewCount) as c FROM novels");
+      const [vipUsers]: any = await pool.execute("SELECT COUNT(*) as c FROM users WHERE vipUntil > NOW()");
+      const [totalCoins]: any = await pool.execute("SELECT SUM(coins) as c FROM users");
+      const [recentUsers]: any = await pool.execute("SELECT COUNT(*) as c FROM users WHERE createdAt > DATE_SUB(NOW(), INTERVAL 7 DAY)");
+      const [topNovels]: any = await pool.execute("SELECT id, title, viewCount, likeCount FROM novels ORDER BY viewCount DESC LIMIT 10");
+      const [categoryStats]: any = await pool.execute("SELECT category, COUNT(*) as count, SUM(viewCount) as views FROM novels GROUP BY category ORDER BY views DESC");
+      const [apiKeys]: any = await pool.execute("SELECT COUNT(*) as total, SUM(CASE WHEN isActive=1 THEN 1 ELSE 0 END) as active, SUM(usageCount) as totalUsage FROM api_keys");
+      const [subscriptions]: any = await pool.execute("SELECT COUNT(*) as c, SUM(amount) as revenue FROM subscriptions WHERE isActive=1");
+      const [coinPurchases]: any = await pool.execute("SELECT SUM(amount) as totalCoins FROM coin_transactions WHERE type='purchase'");
+      const [usersByRole]: any = await pool.execute("SELECT role, COUNT(*) as count FROM users GROUP BY role");
+      res.json({
+        totalUsers: users[0].c, totalNovels: novels[0].c, totalChapters: chapters[0].c,
+        totalViews: views[0].c || 0, vipUsers: vipUsers[0].c, totalCoinsInSystem: totalCoins[0].c || 0,
+        recentUsers: recentUsers[0].c, topNovels, categoryStats, apiKeys: apiKeys[0],
+        subscriptionRevenue: subscriptions[0].revenue || 0, activeSubscriptions: subscriptions[0].c,
+        totalCoinsPurchased: coinPurchases[0].totalCoins || 0, usersByRole
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/ceo/audit-logs", authMiddleware(["ceo"]), async (req, res) => {
+    try {
+      const { action, limit: lim, offset: off } = req.query;
+      let sql = "SELECT al.*, u.username, u.memberId FROM audit_logs al LEFT JOIN users u ON al.userId = u.id WHERE 1=1";
+      const params: any[] = [];
+      if (action) { sql += " AND al.action=?"; params.push(action); }
+      const limitNum = parseInt(lim as string) || 50;
+      const offsetNum = parseInt(off as string) || 0;
+      sql += ` ORDER BY al.createdAt DESC LIMIT ${limitNum} OFFSET ${offsetNum}`;
+      const [rows] = await pool.execute(sql, params);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/ceo/financials", authMiddleware(["ceo"]), async (_req, res) => {
+    try {
+      const [subsByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(amount) as revenue FROM subscriptions GROUP BY month ORDER BY month DESC LIMIT 12");
+      const [coinsByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, type, SUM(amount) as total FROM coin_transactions GROUP BY month, type ORDER BY month DESC LIMIT 50");
+      const [ebooksByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(coinCost) as totalCoins FROM ebook_downloads GROUP BY month ORDER BY month DESC LIMIT 12");
+      res.json({ subscriptionsByMonth: subsByMonth, coinsByMonth, ebooksByMonth });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/ceo/users", authMiddleware(["ceo"]), async (req, res) => {
+    try {
+      const { search, role, limit: lim, offset: off } = req.query;
+      let sql = "SELECT id, memberId, username, email, firstName, lastName, phone, province, role, points, coins, vipUntil, vipEbookDownloads, isActive, createdAt, lastLoginAt FROM users WHERE 1=1";
+      const params: any[] = [];
+      if (search) { sql += " AND (username LIKE ? OR email LIKE ? OR memberId LIKE ? OR firstName LIKE ?)"; params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
+      if (role) { sql += " AND role=?"; params.push(role); }
+      const limitNum = parseInt(lim as string) || 50;
+      const offsetNum = parseInt(off as string) || 0;
+      sql += ` ORDER BY createdAt DESC LIMIT ${limitNum} OFFSET ${offsetNum}`;
+      const [rows] = await pool.execute(sql, params);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put("/api/ceo/users/:id", authMiddleware(["ceo"]), async (req: any, res) => {
+    try {
+      const fields = req.body;
+      const allowed = ["points", "coins", "isActive", "freeReadUntil", "vipUntil", "role", "firstName", "lastName", "phone", "province", "vipEbookDownloads", "vipEbookLimit"];
+      const sets: string[] = [];
+      const vals: any[] = [];
+      for (const k of allowed) {
+        if (fields[k] !== undefined) { sets.push(`${k}=?`); vals.push(fields[k]); }
+      }
+      if (sets.length === 0) return res.status(400).json({ error: "No fields" });
+      vals.push(req.params.id);
+      await pool.execute(`UPDATE users SET ${sets.join(",")} WHERE id=?`, vals);
+      await logAudit(req.user.id, "ceo_update_user", "user", parseInt(req.params.id), fields);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/ceo/users", authMiddleware(["ceo"]), async (req: any, res) => {
+    try {
+      const { username, email, password, firstName, lastName, role, points, coins } = req.body;
+      const hash = bcrypt.hashSync(password || "252333", 10);
+      const [countResult]: any = await pool.execute("SELECT COUNT(*) as c FROM users");
+      const nextNum = countResult[0].c + 1;
+      const memberId = role === "ceo" ? `CEO${String(nextNum).padStart(4, "0")}` : `M${String(nextNum).padStart(7, "0")}`;
+      const myReferral = `REF${Date.now().toString(36).toUpperCase()}`;
+      await pool.execute(
+        `INSERT INTO users (memberId, username, email, passwordHash, firstName, lastName, role, points, coins, referralCode)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [memberId, username, email, hash, firstName || "", lastName || "", role || "member", points || 100, coins || 0, myReferral]
+      );
+      await logAudit(req.user.id, "ceo_create_user", "user", null as any, { username, role });
+      res.json({ success: true, memberId });
+    } catch (e: any) {
+      if (e.code === "ER_DUP_ENTRY") return res.status(400).json({ error: "ชื่อผู้ใช้หรืออีเมลซ้ำ" });
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // ============ NOVEL ROUTES (PUBLIC) ============
@@ -208,9 +333,12 @@ async function startServer() {
   app.post("/api/member/use-points", authMiddleware(), async (req: any, res) => {
     try {
       const { novelId, chapterId, chapterNumber } = req.body;
-      const [user]: any = await pool.execute("SELECT points, freeReadUntil FROM users WHERE id=?", [req.user.id]);
+      const [user]: any = await pool.execute("SELECT points, freeReadUntil, vipUntil FROM users WHERE id=?", [req.user.id]);
       if (user[0].freeReadUntil && new Date(user[0].freeReadUntil) > new Date()) {
         return res.json({ success: true, free: true, pointsRemaining: user[0].points });
+      }
+      if (user[0].vipUntil && new Date(user[0].vipUntil) > new Date()) {
+        return res.json({ success: true, vip: true, pointsRemaining: user[0].points });
       }
       const [settings]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='points_per_chapter'");
       const cost = parseInt(settings[0]?.settingValue || "3");
@@ -236,6 +364,116 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  app.put("/api/member/profile", authMiddleware(), async (req: any, res) => {
+    try {
+      const { firstName, lastName, phone, province, bio, avatarUrl } = req.body;
+      const sets: string[] = [];
+      const vals: any[] = [];
+      if (firstName !== undefined) { sets.push("firstName=?"); vals.push(firstName); }
+      if (lastName !== undefined) { sets.push("lastName=?"); vals.push(lastName); }
+      if (phone !== undefined) { sets.push("phone=?"); vals.push(phone); }
+      if (province !== undefined) { sets.push("province=?"); vals.push(province); }
+      if (bio !== undefined) { sets.push("bio=?"); vals.push(bio); }
+      if (avatarUrl !== undefined) { sets.push("avatarUrl=?"); vals.push(avatarUrl); }
+      if (sets.length === 0) return res.status(400).json({ error: "No fields" });
+      vals.push(req.user.id);
+      await pool.execute(`UPDATE users SET ${sets.join(",")} WHERE id=?`, vals);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/member/change-password", authMiddleware(), async (req: any, res) => {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      if (!oldPassword || !newPassword) return res.status(400).json({ error: "กรุณากรอกรหัสผ่านให้ครบ" });
+      if (newPassword.length < 6) return res.status(400).json({ error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" });
+      const [rows]: any = await pool.execute("SELECT passwordHash FROM users WHERE id=?", [req.user.id]);
+      if (!rows[0]) return res.status(404).json({ error: "ไม่พบผู้ใช้" });
+      const valid = await bcrypt.compare(oldPassword, rows[0].passwordHash);
+      if (!valid) return res.status(400).json({ error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" });
+      const hashed = await bcrypt.hash(newPassword, 10);
+      await pool.execute("UPDATE users SET passwordHash=? WHERE id=?", [hashed, req.user.id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/member/point-history", authMiddleware(), async (req: any, res) => {
+    try {
+      const [rows] = await pool.execute("SELECT * FROM point_transactions WHERE userId=? ORDER BY createdAt DESC LIMIT 50", [req.user.id]);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============ VIP & COINS ============
+  app.post("/api/member/subscribe-vip", authMiddleware(), async (req: any, res) => {
+    try {
+      const { paymentMethod, paymentRef } = req.body;
+      const [priceRow]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='vip_price'");
+      const price = parseFloat(priceRow[0]?.settingValue || "100");
+      const endDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 19).replace("T", " ");
+      await pool.execute(
+        "INSERT INTO subscriptions (userId, plan, amount, endDate, paymentMethod, paymentRef) VALUES (?, 'vip', ?, ?, ?, ?)",
+        [req.user.id, price, endDate, paymentMethod || "manual", paymentRef || ""]
+      );
+      await pool.execute("UPDATE users SET vipUntil=?, vipEbookDownloads=0 WHERE id=?", [endDate, req.user.id]);
+      await logAudit(req.user.id, "subscribe_vip", "user", req.user.id, { price, endDate });
+      res.json({ success: true, vipUntil: endDate, price });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/member/purchase-coins", authMiddleware(), async (req: any, res) => {
+    try {
+      const { amount, paymentMethod, paymentRef } = req.body;
+      const minPurchase = 100;
+      if (amount < minPurchase) return res.status(400).json({ error: `ขั้นต่ำ ${minPurchase} Coins` });
+      await pool.execute("UPDATE users SET coins = coins + ? WHERE id=?", [amount, req.user.id]);
+      await pool.execute("INSERT INTO coin_transactions (userId, amount, type, description) VALUES (?, ?, 'purchase', ?)", [req.user.id, amount, `ซื้อ ${amount} Coins`]);
+      await logAudit(req.user.id, "purchase_coins", "user", req.user.id, { amount });
+      const [user]: any = await pool.execute("SELECT coins FROM users WHERE id=?", [req.user.id]);
+      res.json({ success: true, coinsAdded: amount, totalCoins: user[0].coins });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/member/coin-history", authMiddleware(), async (req: any, res) => {
+    try {
+      const [rows] = await pool.execute("SELECT * FROM coin_transactions WHERE userId=? ORDER BY createdAt DESC LIMIT 50", [req.user.id]);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/member/download-ebook", authMiddleware(), async (req: any, res) => {
+    try {
+      const { novelId } = req.body;
+      const [user]: any = await pool.execute("SELECT coins, vipUntil, vipEbookDownloads, vipEbookLimit FROM users WHERE id=?", [req.user.id]);
+      const u = user[0];
+      const isVip = u.vipUntil && new Date(u.vipUntil) > new Date();
+      const [costRow]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='coin_per_ebook'");
+      const coinCost = parseInt(costRow[0]?.settingValue || "10");
+
+      if (isVip && u.vipEbookDownloads < u.vipEbookLimit) {
+        await pool.execute("UPDATE users SET vipEbookDownloads = vipEbookDownloads + 1 WHERE id=?", [req.user.id]);
+        await pool.execute("INSERT INTO ebook_downloads (userId, novelId, coinCost, format) VALUES (?, ?, 0, 'pdf')", [req.user.id, novelId]);
+        return res.json({ success: true, method: "vip", downloadsUsed: u.vipEbookDownloads + 1, downloadsLimit: u.vipEbookLimit });
+      }
+
+      if (u.coins < coinCost) return res.status(400).json({ error: `Coin ไม่พอ ต้องใช้ ${coinCost} Coins`, coinsNeeded: coinCost, coinsHave: u.coins });
+      await pool.execute("UPDATE users SET coins = coins - ? WHERE id=?", [coinCost, req.user.id]);
+      await pool.execute("INSERT INTO coin_transactions (userId, amount, type, description, relatedId) VALUES (?, ?, 'use_ebook', ?, ?)", [req.user.id, -coinCost, `โหลด eBook`, novelId]);
+      await pool.execute("INSERT INTO ebook_downloads (userId, novelId, coinCost, format) VALUES (?, ?, ?, 'pdf')", [req.user.id, novelId, coinCost]);
+      res.json({ success: true, method: "coins", coinsUsed: coinCost });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/member/download-history", authMiddleware(), async (req: any, res) => {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT ed.*, n.title, n.coverUrl FROM ebook_downloads ed JOIN novels n ON ed.novelId = n.id WHERE ed.userId=? ORDER BY ed.createdAt DESC LIMIT 50`,
+        [req.user.id]
+      );
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // ============ ADMIN ROUTES ============
   app.get("/api/admin/stats", authMiddleware(["admin", "ceo"]), async (_req, res) => {
     try {
@@ -250,7 +488,6 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // Admin: Manage novels
   app.post("/api/admin/novels", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { title, category, description, coverUrl, ageRating, author, status } = req.body;
@@ -261,6 +498,7 @@ async function startServer() {
         "INSERT INTO novels (title, slug, author, category, description, coverUrl, ageRating, status, seoTitle, seoDescription) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [title, slug, author || "NiYAIFREE", category, description || "", coverUrl || "", ageRating || "ทั่วไป", status || "draft", seoTitle, seoDesc]
       );
+      await logAudit(req.user.id, "create_novel", "novel", result.insertId, { title, category });
       res.json({ success: true, id: result.insertId });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -288,7 +526,6 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // Admin: Manage chapters
   app.post("/api/admin/chapters", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { novelId, chapterNumber, title, content } = req.body;
@@ -327,11 +564,10 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // Admin: Manage users
   app.get("/api/admin/users", authMiddleware(["admin", "ceo"]), async (req, res) => {
     try {
       const { search, limit: lim, offset: off } = req.query;
-      let sql = "SELECT id, memberId, username, email, firstName, lastName, phone, province, role, points, freeReadUntil, isActive, createdAt, lastLoginAt FROM users WHERE 1=1";
+      let sql = "SELECT id, memberId, username, email, firstName, lastName, phone, province, role, points, coins, vipUntil, isActive, createdAt, lastLoginAt FROM users WHERE 1=1";
       const params: any[] = [];
       if (search) { sql += " AND (username LIKE ? OR email LIKE ? OR memberId LIKE ? OR firstName LIKE ?)"; params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
       const limitNum = parseInt(lim as string) || 50;
@@ -344,19 +580,28 @@ async function startServer() {
 
   app.put("/api/admin/users/:id", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
-      const { points, isActive, freeReadUntil, role } = req.body;
+      const { points, isActive, freeReadUntil, role, coins, vipUntil } = req.body;
       const sets: string[] = [];
       const vals: any[] = [];
       if (points !== undefined) { sets.push("points=?"); vals.push(points); }
+      if (coins !== undefined) { sets.push("coins=?"); vals.push(coins); }
       if (isActive !== undefined) { sets.push("isActive=?"); vals.push(isActive); }
       if (freeReadUntil !== undefined) { sets.push("freeReadUntil=?"); vals.push(freeReadUntil); }
+      if (vipUntil !== undefined) { sets.push("vipUntil=?"); vals.push(vipUntil); }
       if (role !== undefined) { sets.push("role=?"); vals.push(role); }
       vals.push(req.params.id);
       await pool.execute(`UPDATE users SET ${sets.join(",")} WHERE id=?`, vals);
-      if (points !== undefined) {
-        const diff = points;
-        await pool.execute("INSERT INTO point_transactions (userId, amount, type, description) VALUES (?, ?, 'admin_adjust', 'ปรับแต้มโดย Admin')", [req.params.id, diff]);
-      }
+      await logAudit(req.user.id, "admin_update_user", "user", parseInt(req.params.id), req.body);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/admin/users/:id/coins", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
+    try {
+      const { amount, description } = req.body;
+      await pool.execute("UPDATE users SET coins = coins + ? WHERE id=?", [amount, req.params.id]);
+      await pool.execute("INSERT INTO coin_transactions (userId, amount, type, description) VALUES (?, ?, 'admin_adjust', ?)", [req.params.id, amount, description || "ปรับ Coins โดย Admin"]);
+      await logAudit(req.user.id, "admin_adjust_coins", "user", parseInt(req.params.id), { amount, description });
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -414,20 +659,18 @@ async function startServer() {
   app.post("/api/admin/generate-novel", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { category, numNovels, numChapters, wordsPerChapter, tone } = req.body;
-      // Get available API keys
       const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE isActive=1 AND provider='gemini'");
       if (keys.length === 0) return res.status(400).json({ error: "ไม่มี API Key ที่ใช้งานได้" });
-
       const totalCalls = Math.ceil((numNovels * numChapters) / 3);
       const [job]: any = await pool.execute(
         "INSERT INTO generation_jobs (type, status, config, totalTasks, createdBy) VALUES ('novel', 'pending', ?, ?, ?)",
         [JSON.stringify({ category, numNovels, numChapters, wordsPerChapter: wordsPerChapter || 1300, tone: tone || "ดราม่าเข้ม" }), totalCalls, req.user.id]
       );
+      await logAudit(req.user.id, "generate_novel", "job", job.insertId, { category, numNovels, numChapters });
       res.json({ success: true, jobId: job.insertId, totalCalls, keysAvailable: keys.length });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // AI: Generate chapters for a specific novel
   app.post("/api/admin/ai-generate-chapters", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { novelId, numCalls, startChapter } = req.body;
@@ -468,7 +711,6 @@ async function startServer() {
           );
           const data = await response.json();
           const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          // Try to parse JSON from response
           const jsonMatch = text.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
             const chapters = JSON.parse(jsonMatch[0]);
@@ -488,7 +730,6 @@ async function startServer() {
         }
       }
 
-      // Update novel stats
       await pool.execute("UPDATE novels SET totalChapters = (SELECT COUNT(*) FROM chapters WHERE novelId=?), totalWords = (SELECT COALESCE(SUM(wordCount),0) FROM chapters WHERE novelId=?), status='writing' WHERE id=?", [novelId, novelId, novelId]);
       res.json({ success: true, results, chaptersCreated: results.filter(r => !r.error).length });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -552,7 +793,6 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // Admin: Generation jobs
   app.get("/api/admin/jobs", authMiddleware(["admin", "ceo"]), async (_req, res) => {
     try {
       const [rows] = await pool.execute("SELECT * FROM generation_jobs ORDER BY createdAt DESC LIMIT 50");
@@ -571,6 +811,14 @@ async function startServer() {
         res.status(404).type("text/plain").send("# No ads.txt configured");
       }
     } catch { res.status(500).send("Error"); }
+  });
+
+  // ============ COPYRIGHT WARNING (PUBLIC) ============
+  app.get("/api/copyright", async (_req, res) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='copyright_warning'");
+      res.json({ warning: rows[0]?.settingValue || "ห้ามกอปปี้ คัดลอก ทำซ้ำ ดัดแปลง เผยแพร่ จำหน่าย โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษรจากบริษัท ตามกฎหมายลิขสิทธิ์ไทย พ.ร.บ.ลิขสิทธิ์ พ.ศ. 2537" });
+    } catch { res.json({ warning: "" }); }
   });
 
   // ============ STATIC FILES ============

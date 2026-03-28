@@ -16,17 +16,23 @@ import Genre from "./pages/Genre";
 import SearchPage from "./pages/SearchPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import CeoDashboard from "./pages/CeoDashboard";
+import MemberDashboard from "./pages/MemberDashboard";
+import MemberProfile from "./pages/MemberProfile";
+import VipPage from "./pages/VipPage";
+import CoinsPage from "./pages/CoinsPage";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isReader = location.startsWith("/read/");
   const isAdmin = location.startsWith("/admin");
+  const isCeo = location.startsWith("/ceo");
 
   return (
     <>
-      {!isReader && !isAdmin && <Navbar />}
+      {!isReader && !isAdmin && !isCeo && <Navbar />}
       {children}
-      {!isReader && !isAdmin && <Footer />}
+      {!isReader && !isAdmin && !isCeo && <Footer />}
     </>
   );
 }
@@ -35,16 +41,32 @@ function Router() {
   return (
     <Layout>
       <Switch>
+        {/* Public */}
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/novel/:slug" component={NovelDetail} />
         <Route path="/read/:novelId/:chapterNumber" component={Reader} />
         <Route path="/genre/:name" component={Genre} />
+        <Route path="/category/:slug" component={Genre} />
         <Route path="/search" component={SearchPage} />
+        <Route path="/vip" component={VipPage} />
+        <Route path="/coins" component={CoinsPage} />
+
+        {/* Member */}
+        <Route path="/member" component={MemberDashboard} />
+        <Route path="/member/profile" component={MemberProfile} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/bookmarks" component={Dashboard} />
+
+        {/* Admin */}
         <Route path="/admin" component={Admin} />
+        <Route path="/admin/:rest*" component={Admin} />
+
+        {/* CEO */}
+        <Route path="/ceo" component={CeoDashboard} />
+        <Route path="/ceo/:rest*" component={CeoDashboard} />
+
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
