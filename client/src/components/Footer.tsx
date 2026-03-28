@@ -9,8 +9,10 @@ export default function Footer() {
   return (
     <footer>
       {/* Newsletter Section */}
-      <div className="bg-rose-50 py-12 border-t border-rose-100">
-        <div className="container text-center">
+      <div className="relative py-12 border-t border-rose-100 overflow-hidden">
+        <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/newsletter-bg-DBpMpEqgjSWDxZt2PfAWbW.webp" alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-white/50" />
+        <div className="container text-center relative z-10">
           <h3 className="text-xl font-bold text-slate-900 font-[Kanit] mb-2">รับข่าวสารนิยายใหม่</h3>
           <p className="text-slate-500 text-sm mb-5">สมัครรับจดหมายข่าวเพื่อรับข้อเสนอพิเศษและนิยายใหม่ก่อนใคร</p>
           <div className="flex items-center max-w-md mx-auto">

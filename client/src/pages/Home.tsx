@@ -12,8 +12,11 @@ import {
   ArrowRight, Flame, Crown, Users, Sparkles, Zap, Heart
 } from "lucide-react";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-dhg4wq4HwAVcainEMTnvn7.webp";
-const PROMO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/promo-banner-9UxgNfesR6ZAXkdruvFDYS.webp";
+const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-P3KGaCtAhVoFcdmej49SAQ.webp";
+const VIP_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/vip-section-bg-fhkESx7LZqPuVbVcVHTUqg.webp";
+const PROMO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/promo-banner-bg-PMkLj77hVWxQ3jeeyryMNr.webp";
+const NEWSLETTER_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/newsletter-bg-DBpMpEqgjSWDxZt2PfAWbW.webp";
+const CATEGORY_DRAGON = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/category-fantasy-gcakKqsuNdMrToMgM4GEyk.webp";
 
 const categories = [
   { name: "แฟนตาซี", icon: "🐉", bg: "cat-card-purple", desc: "โลกเวทมนตร์" },
@@ -124,7 +127,10 @@ export default function Home() {
       <section className="py-12 bg-white">
         <div className="container">
           <div className="section-header">
-            <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">หมวดหมู่ยอดนิยม</h2>
+            <div className="flex items-center gap-3">
+              <img src={CATEGORY_DRAGON} alt="" className="w-10 h-10 rounded-lg object-cover" />
+              <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">หมวดหมู่ยอดนิยม</h2>
+            </div>
             <Link href="/search" className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
               ดูทั้งหมด <ChevronRight className="w-4 h-4" />
             </Link>
@@ -189,9 +195,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== VIP & COINS — Bookworm Light Style ===== */}
-      <section className="py-14 bg-gradient-to-b from-rose-50/60 to-white">
-        <div className="container">
+      {/* ===== VIP & COINS — Bookworm Light Style with illustration BG ===== */}
+      <section className="py-14 relative overflow-hidden">
+        <img src={VIP_BG} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/80" />
+        <div className="container relative z-10">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold font-[Kanit] text-slate-900 mb-2">สิทธิพิเศษสำหรับคุณ</h2>
             <p className="text-slate-500">อัปเกรดเพื่อรับประสบการณ์การอ่านที่ดีที่สุด</p>
@@ -292,10 +300,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== PROMO BANNER ===== */}
-      <section className="promo-banner py-10">
-        <div className="container text-center">
-          <h3 className="text-2xl md:text-3xl font-bold font-[Kanit] mb-3">อ่านฟรี ไม่มีค่าใช้จ่าย</h3>
+      {/* ===== PROMO BANNER with illustration ===== */}
+      <section className="relative py-14 overflow-hidden">
+        <img src={PROMO_IMG} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-white/40" />
+        <div className="container text-center relative z-10">
+          <h3 className="text-2xl md:text-3xl font-bold font-[Kanit] text-slate-900 mb-3">อ่านฟรี ไม่มีค่าใช้จ่าย</h3>
           <p className="text-slate-600 mb-5">สมัครสมาชิกวันนี้ รับแต้ม 100 แต้มทันที + อ่านฟรี 7 วัน</p>
           <Link href="/register" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all no-underline shadow-lg shadow-primary/20">
             สมัครเลย <ArrowRight className="w-4 h-4" />
