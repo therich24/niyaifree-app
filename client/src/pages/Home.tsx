@@ -73,7 +73,7 @@ export default function Home() {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => navigate("/search")}
-                  className="inline-flex items-center gap-2 bg-slate-900 text-white px-7 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-all shadow-lg"
+                  className="inline-flex items-center gap-2 bg-primary text-white px-7 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
                 >
                   เริ่มอ่านเลย <ArrowRight className="w-4 h-4" />
                 </button>
@@ -189,54 +189,60 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== DEALS / VIP PROMO — Bookworm Dark Section ===== */}
-      <section className="deals-dark py-14 text-white">
+      {/* ===== VIP & COINS — Bookworm Light Style ===== */}
+      <section className="py-14 bg-gradient-to-b from-rose-50/60 to-white">
         <div className="container">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold font-[Kanit] mb-2">สิทธิพิเศษสำหรับคุณ</h2>
-            <p className="text-slate-400">อัปเกรดเพื่อรับประสบการณ์การอ่านที่ดีที่สุด</p>
+            <h2 className="text-3xl font-bold font-[Kanit] text-slate-900 mb-2">สิทธิพิเศษสำหรับคุณ</h2>
+            <p className="text-slate-500">อัปเกรดเพื่อรับประสบการณ์การอ่านที่ดีที่สุด</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* VIP Card */}
-            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-amber-400" />
+            <div className="bg-white rounded-2xl p-6 border-2 border-primary/20 shadow-md hover:shadow-lg hover:border-primary/40 transition-all relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <Crown className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold font-[Kanit] text-slate-900">VIP Member</h3>
+                    <p className="text-sm text-slate-500">฿100 / เดือน</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold font-[Kanit]">VIP Member</h3>
-                  <p className="text-sm text-slate-400">฿100 / เดือน</p>
-                </div>
+                <ul className="space-y-2.5 text-sm text-slate-600 mb-6">
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary shrink-0" /> อ่านนิยายยาว 30+ ตอนได้ทุกเรื่อง</li>
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary shrink-0" /> ดาวน์โหลด eBook ได้ 10 เล่ม/เดือน</li>
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary shrink-0" /> ไม่มีโฆษณา</li>
+                </ul>
+                <Link href="/vip" className="block text-center bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors no-underline shadow-sm">
+                  สมัคร VIP
+                </Link>
               </div>
-              <ul className="space-y-2 text-sm text-slate-300 mb-6">
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-400 shrink-0" /> อ่านนิยายยาว 30+ ตอนได้ทุกเรื่อง</li>
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-400 shrink-0" /> ดาวน์โหลด eBook ได้ 10 เล่ม/เดือน</li>
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-400 shrink-0" /> ไม่มีโฆษณา</li>
-              </ul>
-              <Link href="/vip" className="block text-center bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-400 transition-colors no-underline">
-                สมัคร VIP
-              </Link>
             </div>
 
             {/* Coins Card */}
-            <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-emerald-400" />
+            <div className="bg-white rounded-2xl p-6 border-2 border-amber-200 shadow-md hover:shadow-lg hover:border-amber-300 transition-all relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold font-[Kanit] text-slate-900">Coins</h3>
+                    <p className="text-sm text-slate-500">เริ่มต้น ฿100</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold font-[Kanit]">Coins</h3>
-                  <p className="text-sm text-slate-400">เริ่มต้น ฿100</p>
-                </div>
+                <ul className="space-y-2.5 text-sm text-slate-600 mb-6">
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-500 shrink-0" /> ดาวน์โหลด eBook 10 Coins/เล่ม</li>
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-500 shrink-0" /> ใช้ได้ไม่มีวันหมดอายุ</li>
+                  <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-500 shrink-0" /> ซื้อเท่าไหร่ก็ได้</li>
+                </ul>
+                <Link href="/coins" className="block text-center bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-400 transition-colors no-underline shadow-sm">
+                  ซื้อ Coins
+                </Link>
               </div>
-              <ul className="space-y-2 text-sm text-slate-300 mb-6">
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-emerald-400 shrink-0" /> ดาวน์โหลด eBook 10 Coins/เล่ม</li>
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-emerald-400 shrink-0" /> ใช้ได้ไม่มีวันหมดอายุ</li>
-                <li className="flex items-center gap-2"><Zap className="w-4 h-4 text-emerald-400 shrink-0" /> ซื้อเท่าไหร่ก็ได้</li>
-              </ul>
-              <Link href="/coins" className="block text-center bg-emerald-500 text-white py-3 rounded-lg font-semibold hover:bg-emerald-400 transition-colors no-underline">
-                ซื้อ Coins
-              </Link>
             </div>
           </div>
         </div>
@@ -290,8 +296,8 @@ export default function Home() {
       <section className="promo-banner py-10">
         <div className="container text-center">
           <h3 className="text-2xl md:text-3xl font-bold font-[Kanit] mb-3">อ่านฟรี ไม่มีค่าใช้จ่าย</h3>
-          <p className="text-white/80 mb-5">สมัครสมาชิกวันนี้ รับแต้ม 100 แต้มทันที + อ่านฟรี 7 วัน</p>
-          <Link href="/register" className="inline-flex items-center gap-2 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-white/90 transition-all no-underline">
+          <p className="text-slate-600 mb-5">สมัครสมาชิกวันนี้ รับแต้ม 100 แต้มทันที + อ่านฟรี 7 วัน</p>
+          <Link href="/register" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all no-underline shadow-lg shadow-primary/20">
             สมัครเลย <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

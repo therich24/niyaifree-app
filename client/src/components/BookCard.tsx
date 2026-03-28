@@ -45,8 +45,8 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
-              <span className="text-white text-center text-sm font-semibold leading-snug font-[Kanit]">
+            <div className="w-full h-full bg-gradient-to-br from-rose-100 via-rose-50 to-amber-50 flex items-center justify-center p-4 border-b border-rose-100">
+              <span className="text-slate-800 text-center text-sm font-semibold leading-snug font-[Kanit]">
                 {novel.title}
               </span>
             </div>

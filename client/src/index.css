@@ -203,15 +203,11 @@
   .cat-card-green { background: #e8fdf0; }
   .cat-card-orange { background: #fef0e4; }
 
-  /* Deals section dark bg */
-  .deals-dark {
-    background: linear-gradient(135deg, #1a1f3a 0%, #0f1328 100%);
-  }
 
-  /* Promo banner */
+  /* Promo banner — warm rose gradient */
   .promo-banner {
-    background: linear-gradient(90deg, #E8453C 0%, #d63a32 100%);
-    color: white;
+    background: linear-gradient(135deg, #fce8e4 0%, #fbd5ce 50%, #f8c4ba 100%);
+    color: #3f1a14;
   }
 
   /* Book card hover */

@@ -230,7 +230,7 @@ export default function Navbar() {
         <span className="inline-flex items-center gap-2 flex-wrap justify-center">
           <Sparkles className="w-4 h-4" />
           สมัครสมาชิกวันนี้ อ่านฟรี 7 วัน + รับแต้ม 100 แต้ม!
-          <Link href="/register" className="underline font-bold text-white ml-1 hover:opacity-80 no-underline">
+          <Link href="/register" className="underline font-bold text-primary ml-1 hover:opacity-80 no-underline">
             สมัครเลย →
           </Link>
         </span>
