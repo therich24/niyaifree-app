@@ -94,17 +94,17 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Hero Image */}
-            <div className="relative hidden lg:block">
+            {/* Right: Hero Image — visible on ALL screen sizes */}
+            <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-2xl transform rotate-1 hover:rotate-0 transition-transform duration-500">
                 <img
                   src={HERO_IMG}
                   alt="NiYAIFREE Library"
-                  className="w-full h-[420px] object-cover"
+                  className="w-full h-[240px] sm:h-[320px] lg:h-[420px] object-cover"
                 />
               </div>
-              {/* Floating card */}
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 flex items-center gap-3 border border-slate-100">
+              {/* Floating card — hidden on small mobile, shown sm+ */}
+              <div className="hidden sm:flex absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 items-center gap-3 border border-slate-100">
                 <div className="w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
@@ -113,7 +113,7 @@ export default function Home() {
                   <p className="text-xs text-slate-500">10,000+ ครั้ง</p>
                 </div>
               </div>
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-3 flex items-center gap-2 border border-slate-100">
+              <div className="hidden sm:flex absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-3 items-center gap-2 border border-slate-100">
                 <Heart className="w-5 h-5 text-primary fill-primary" />
                 <span className="text-sm font-bold text-slate-900">4.8</span>
                 <span className="text-xs text-slate-500">คะแนน</span>
