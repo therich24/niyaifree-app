@@ -560,6 +560,19 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ============ ADS.TXT PUBLIC ROUTE ============
+  app.get("/ads.txt", async (_req, res) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='ads_txt_content'");
+      const content = rows[0]?.settingValue || "";
+      if (content) {
+        res.type("text/plain").send(content);
+      } else {
+        res.status(404).type("text/plain").send("# No ads.txt configured");
+      }
+    } catch { res.status(500).send("Error"); }
+  });
+
   // ============ STATIC FILES ============
   const staticPath =
     process.env.NODE_ENV === "production"

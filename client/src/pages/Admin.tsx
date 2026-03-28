@@ -14,7 +14,7 @@ import {
   ChevronRight, Eye, FileText, CheckCircle, XCircle, RefreshCw, Zap, PenTool
 } from "lucide-react";
 
-type Tab = "dashboard" | "novels" | "users" | "generate" | "proof" | "apikeys" | "settings";
+type Tab = "dashboard" | "novels" | "users" | "generate" | "proof" | "apikeys" | "adsense" | "settings";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -36,6 +36,7 @@ export default function Admin() {
     { id: "generate", label: "DOONOVEL (AI สร้าง)", icon: <Wand2 className="w-4 h-4" /> },
     { id: "proof", label: "DOOPROOF (พิสูจน์อักษร)", icon: <PenTool className="w-4 h-4" /> },
     { id: "apikeys", label: "API Keys", icon: <Key className="w-4 h-4" /> },
+    { id: "adsense", label: "AdSense", icon: <Zap className="w-4 h-4" /> },
     { id: "settings", label: "ตั้งค่าระบบ", icon: <Settings className="w-4 h-4" /> },
   ];
 
@@ -85,6 +86,7 @@ export default function Admin() {
         {tab === "generate" && <GenerateTab />}
         {tab === "proof" && <ProofTab />}
         {tab === "apikeys" && <ApiKeysTab />}
+        {tab === "adsense" && <AdSenseTab />}
         {tab === "settings" && <SettingsTab />}
       </main>
     </div>
@@ -519,6 +521,164 @@ function ApiKeysTab() {
         ))}
         {keys.length === 0 && <p className="text-center py-8 text-muted-foreground">ยังไม่มี API Key — เพิ่มเพื่อใช้ AI Generate</p>}
       </div>
+    </div>
+  );
+}
+
+// ===== ADSENSE MANAGEMENT =====
+function AdSenseTab() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const adsenseKeys = [
+    'adsense_verification_method', 'adsense_publisher_id', 'adsense_code',
+    'ads_txt_content', 'adsense_meta_tag', 'adsense_auto_ads',
+    'adsense_header', 'adsense_sidebar', 'adsense_content',
+    'adsense_in_article', 'adsense_in_feed', 'adsense_matched_content'
+  ];
+
+  useEffect(() => {
+    api.getSettings().then((all: any[]) => {
+      const map: Record<string, string> = {};
+      all.filter((s: any) => adsenseKeys.includes(s.settingKey)).forEach((s: any) => { map[s.settingKey] = s.settingValue || ''; });
+      // Ensure all keys exist
+      adsenseKeys.forEach(k => { if (!(k in map)) map[k] = ''; });
+      setSettings(map);
+    }).catch(() => toast.error("ไม่สามารถโหลดการตั้งค่า AdSense ได้")).finally(() => setLoading(false));
+  }, []);
+
+  const update = (key: string, val: string) => setSettings(s => ({ ...s, [key]: val }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("กำลังบันทึก...");
+    try {
+      await api.updateSettings(settings);
+      toast.success("บันทึกการตั้งค่า AdSense สำเร็จ!", { id: toastId });
+    } catch (e: any) { toast.error(e.message || "บันทึกไม่สำเร็จ", { id: toastId }); }
+    setSaving(false);
+  };
+
+  const method = settings.adsense_verification_method || 'ads_txt';
+
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Kanit" }}>Google AdSense</h1>
+      <p className="text-sm text-muted-foreground mb-6">จัดการโค้ดโฆษณาและการยืนยันเว็บไซต์กับ Google AdSense</p>
+
+      {/* Publisher ID */}
+      <div className="bg-white rounded-xl border p-6 mb-6 max-w-3xl">
+        <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Kanit" }}>Publisher ID</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Publisher ID (pub-xxxxxxxxxx)</label>
+            <input type="text" value={settings.adsense_publisher_id} onChange={e => update('adsense_publisher_id', e.target.value)} placeholder="pub-1234567890123456" className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+        </div>
+      </div>
+
+      {/* Verification Method */}
+      <div className="bg-white rounded-xl border p-6 mb-6 max-w-3xl">
+        <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Kanit" }}>เลือกวิธีการยืนยัน</h2>
+        <div className="flex flex-wrap gap-4 mb-6">
+          {[
+            { id: 'adsense_code', label: 'ข้อมูลโค้ด AdSense', desc: 'วางโค้ดใน <head> ของเว็บไซต์' },
+            { id: 'ads_txt', label: 'ข้อมูลโค้ด Ads.txt', desc: 'อัปโหลดไฟล์ ads.txt ไปยังรูทของเว็บไซต์' },
+            { id: 'meta_tag', label: 'เมตาแท็ก', desc: 'วางเมตาแท็กใน <head> เพื่อยืนยัน' },
+          ].map(opt => (
+            <label key={opt.id} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all flex-1 min-w-[200px] ${method === opt.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+              <input type="radio" name="verification" value={opt.id} checked={method === opt.id} onChange={() => update('adsense_verification_method', opt.id)} className="mt-1 accent-primary" />
+              <div>
+                <p className="text-sm font-semibold">{opt.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {/* Conditional fields based on method */}
+        {method === 'adsense_code' && (
+          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+            <label className="block text-sm font-medium">โค้ด AdSense (วางใน &lt;head&gt;)</label>
+            <textarea value={settings.adsense_code} onChange={e => update('adsense_code', e.target.value)} rows={5} placeholder='<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX" crossorigin="anonymous"></script>' className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
+            <p className="text-xs text-muted-foreground">คัดลอกโค้ดจากหน้า AdSense แล้ววางที่นี่</p>
+          </div>
+        )}
+
+        {method === 'ads_txt' && (
+          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+            <label className="block text-sm font-medium">เนื้อหาไฟล์ ads.txt</label>
+            <textarea value={settings.ads_txt_content} onChange={e => update('ads_txt_content', e.target.value)} rows={5} placeholder="google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0" className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
+            <div className="p-3 rounded-lg border bg-blue-50 border-blue-200">
+              <p className="text-xs text-blue-800">
+                ในการเตรียมเว็บไซต์ให้พร้อมแสดงโฆษณา ให้คัดลอกข้อความด้านล่างแล้ววางไว้ในไฟล์ ads.txt แต่ละไฟล์ จากนั้นอัปโหลดไปยังไดเรกทอรีรูทของเว็บไซต์ หากมีไฟล์ ads.txt อยู่แล้ว ก็เพียงวางข้อความลงในแต่ละไฟล์{" "}
+                <a href="https://support.google.com/adsense/answer/7532444" target="_blank" rel="noopener" className="font-semibold text-blue-700 underline">ดูข้อมูลเพิ่มเติมเกี่ยวกับการสร้างไฟล์ ads.txt</a>
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">ไฟล์ ads.txt จะถูกสร้างอัตโนมัติที่ <span className="font-mono font-semibold">yourdomain.com/ads.txt</span></p>
+          </div>
+        )}
+
+        {method === 'meta_tag' && (
+          <div className="space-y-3 p-4 rounded-lg" style={{ background: "oklch(0.97 0.005 155)" }}>
+            <label className="block text-sm font-medium">เมตาแท็กยืนยัน</label>
+            <textarea value={settings.adsense_meta_tag} onChange={e => update('adsense_meta_tag', e.target.value)} rows={3} placeholder='<meta name="google-adsense-account" content="ca-pub-XXXXXXXXXXXXXXXX">' className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
+            <p className="text-xs text-muted-foreground">คัดลอกเมตาแท็กจากหน้า AdSense แล้ววางที่นี่</p>
+          </div>
+        )}
+      </div>
+
+      {/* Ad Placement Codes */}
+      <div className="bg-white rounded-xl border p-6 mb-6 max-w-3xl">
+        <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Kanit" }}>โค้ดโฆษณาตำแหน่งต่างๆ</h2>
+        <p className="text-sm text-muted-foreground mb-4">วางโค้ด Ad Unit สำหรับแต่ละตำแหน่งบนหน้าเว็บ</p>
+        <div className="space-y-4">
+          {[
+            { key: 'adsense_auto_ads', label: 'Auto Ads (โฆษณาอัตโนมัติ)', placeholder: '<script>...</script>', rows: 3 },
+            { key: 'adsense_header', label: 'Header Ad (ด้านบน)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+            { key: 'adsense_sidebar', label: 'Sidebar Ad (ด้านข้าง)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+            { key: 'adsense_content', label: 'Content Ad (ในเนื้อหา)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+            { key: 'adsense_in_article', label: 'In-Article Ad (ระหว่างบทความ)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+            { key: 'adsense_in_feed', label: 'In-Feed Ad (ในรายการ)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+            { key: 'adsense_matched_content', label: 'Matched Content (เนื้อหาที่ตรงกัน)', placeholder: '<ins class="adsbygoogle" ...></ins><script>...</script>', rows: 3 },
+          ].map(field => (
+            <div key={field.key}>
+              <label className="block text-sm font-medium mb-1">{field.label}</label>
+              <textarea value={settings[field.key] || ''} onChange={e => update(field.key, e.target.value)} rows={field.rows} placeholder={field.placeholder} className="w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview & Status */}
+      <div className="bg-white rounded-xl border p-6 mb-6 max-w-3xl">
+        <h2 className="text-lg font-bold mb-4" style={{ fontFamily: "Kanit" }}>สถานะการตั้งค่า</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={`p-3 rounded-lg border-2 text-center ${settings.adsense_publisher_id ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+            <CheckCircle className={`w-5 h-5 mx-auto mb-1 ${settings.adsense_publisher_id ? 'text-green-600' : 'text-gray-400'}`} />
+            <p className="text-xs font-semibold">Publisher ID</p>
+            <p className="text-[10px] text-muted-foreground">{settings.adsense_publisher_id ? 'ตั้งค่าแล้ว' : 'ยังไม่ได้ตั้งค่า'}</p>
+          </div>
+          <div className={`p-3 rounded-lg border-2 text-center ${(method === 'adsense_code' && settings.adsense_code) || (method === 'ads_txt' && settings.ads_txt_content) || (method === 'meta_tag' && settings.adsense_meta_tag) ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+            <CheckCircle className={`w-5 h-5 mx-auto mb-1 ${(method === 'adsense_code' && settings.adsense_code) || (method === 'ads_txt' && settings.ads_txt_content) || (method === 'meta_tag' && settings.adsense_meta_tag) ? 'text-green-600' : 'text-gray-400'}`} />
+            <p className="text-xs font-semibold">การยืนยัน</p>
+            <p className="text-[10px] text-muted-foreground">{method === 'adsense_code' ? 'AdSense Code' : method === 'ads_txt' ? 'Ads.txt' : 'Meta Tag'}</p>
+          </div>
+          <div className={`p-3 rounded-lg border-2 text-center ${settings.adsense_auto_ads || settings.adsense_header || settings.adsense_content ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+            <CheckCircle className={`w-5 h-5 mx-auto mb-1 ${settings.adsense_auto_ads || settings.adsense_header || settings.adsense_content ? 'text-green-600' : 'text-gray-400'}`} />
+            <p className="text-xs font-semibold">โค้ดโฆษณา</p>
+            <p className="text-[10px] text-muted-foreground">{[settings.adsense_auto_ads && 'Auto', settings.adsense_header && 'Header', settings.adsense_content && 'Content'].filter(Boolean).join(', ') || 'ยังไม่ได้ตั้งค่า'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Save button */}
+      <Button onClick={handleSave} disabled={saving} className="text-white font-semibold px-8 py-2.5" style={{ background: "oklch(0.40 0.12 155)" }}>
+        {saving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> กำลังบันทึก...</> : <><CheckCircle className="w-4 h-4 mr-2" /> บันทึกการตั้งค่า AdSense</>}
+      </Button>
     </div>
   );
 }
