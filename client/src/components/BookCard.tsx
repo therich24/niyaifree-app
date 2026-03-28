@@ -1,6 +1,6 @@
 /*
-  NiYAIFREE BookCard — Koparion Book Shop Style + Coral Red
-  Clean card with cover, hover lift, category tag, view count
+  NiYAIFREE BookCard — Bookworm Bookstore Style
+  Clean white card, book cover prominent, subtle shadow, hover lift
 */
 import { Link } from "wouter";
 import { Eye, BookOpen, Star, Heart, Bookmark } from "lucide-react";
@@ -30,7 +30,7 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
 
   return (
     <div
-      className="book-card group relative bg-white rounded-xl overflow-hidden border border-slate-100"
+      className="book-card-hover group relative bg-white rounded-xl overflow-hidden border border-slate-100 shadow-sm"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
