@@ -12,6 +12,7 @@ import {
   Activity, MapPin, Layers, ArrowUpRight, ArrowDownRight,
   FileText, Hash, Type, FolderOpen, Calendar, PenTool
 } from "lucide-react";
+import { formatThaiDate, formatThaiDateShort, formatThaiDateMedium } from "@/lib/thaiDate";
 
 interface ContentStats {
   totalNovels: number;
@@ -357,7 +358,7 @@ export default function Analytics() {
                           return (
                             <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                {d.date?.slice(5)} — {d.views} views
+                                {formatThaiDateShort(d.date)} — {d.views} views
                               </div>
                               <div
                                 className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-500 min-w-[4px]"
@@ -368,8 +369,8 @@ export default function Analytics() {
                         })}
                       </div>
                       <div className="flex justify-between text-[10px] text-slate-400 px-1">
-                        <span>{data.pageviewsByDay[0]?.date?.slice(5)}</span>
-                        <span>{data.pageviewsByDay[data.pageviewsByDay.length - 1]?.date?.slice(5)}</span>
+                        <span>{formatThaiDateShort(data.pageviewsByDay[0]?.date)}</span>
+                        <span>{formatThaiDateShort(data.pageviewsByDay[data.pageviewsByDay.length - 1]?.date)}</span>
                       </div>
                     </div>
                   ) : (
@@ -445,8 +446,8 @@ export default function Analytics() {
                       const chunk = sorted.slice(i, i + 7);
                       const views = chunk.reduce((s, d) => s + d.views, 0);
                       const visitors = chunk.reduce((s, d) => s + d.visitors, 0);
-                      const start = chunk[0]?.date?.slice(5) || "";
-                      const end = chunk[chunk.length - 1]?.date?.slice(5) || "";
+                      const start = chunk[0]?.date ? formatThaiDateShort(chunk[0].date) : "";
+                      const end = chunk[chunk.length - 1]?.date ? formatThaiDateShort(chunk[chunk.length - 1].date) : "";
                       weeks.push({ label: `${start} - ${end}`, views, visitors });
                     }
                     return (
@@ -795,7 +796,7 @@ export default function Analytics() {
                               <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider mb-1">นิยายล่าสุด</p>
                               <p className="text-sm font-medium text-slate-900">{contentStats.newestNovel.title}</p>
                               <p className="text-xs text-slate-500 mt-0.5">
-                                {contentStats.newestNovel.category} — {new Date(contentStats.newestNovel.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                                {contentStats.newestNovel.category} — {formatThaiDate(contentStats.newestNovel.createdAt)}
                               </p>
                             </div>
                           )}
@@ -804,7 +805,7 @@ export default function Analytics() {
                               <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider mb-1">นิยายแรกสุด</p>
                               <p className="text-sm font-medium text-slate-900">{contentStats.oldestNovel.title}</p>
                               <p className="text-xs text-slate-500 mt-0.5">
-                                {contentStats.oldestNovel.category} — {new Date(contentStats.oldestNovel.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                                {contentStats.oldestNovel.category} — {formatThaiDate(contentStats.oldestNovel.createdAt)}
                               </p>
                             </div>
                           )}
@@ -828,7 +829,7 @@ export default function Analytics() {
                                     const updated = contentStats.novelsUpdatedByDay?.find(u => u.date?.slice(0, 10) === d.date?.slice(0, 10));
                                     return (
                                       <tr key={i} className="hover:bg-blue-50/30">
-                                        <td className="py-1.5 pr-2 text-xs text-slate-600">{d.date?.slice(5)}</td>
+                                        <td className="py-1.5 pr-2 text-xs text-slate-600">{formatThaiDate(d.date)}</td>
                                         <td className="py-1.5 text-right text-xs font-bold text-emerald-600">+{d.count}</td>
                                         <td className="py-1.5 pl-2 text-right text-xs text-blue-500">{updated?.count || 0}</td>
                                       </tr>
