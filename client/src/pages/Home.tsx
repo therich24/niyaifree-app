@@ -29,10 +29,34 @@ const categories = [
   { name: "คอมเมดี้", icon: "😂", bg: "cat-card-yellow", desc: "ตลก" },
 ];
 
+const categoryColors: Record<string, string> = {
+  "แฟนตาซี": "bg-purple-50 border-purple-200 text-purple-700",
+  "โรแมนติก": "bg-pink-50 border-pink-200 text-pink-700",
+  "แอ็คชั่น": "bg-red-50 border-red-200 text-red-700",
+  "ดราม่า": "bg-yellow-50 border-yellow-200 text-yellow-700",
+  "สยองขวัญ": "bg-blue-50 border-blue-200 text-blue-700",
+  "ลึกลับ": "bg-emerald-50 border-emerald-200 text-emerald-700",
+  "Sci-Fi": "bg-orange-50 border-orange-200 text-orange-700",
+  "คอมเมดี้": "bg-amber-50 border-amber-200 text-amber-700",
+};
+
+const categoryIcons: Record<string, string> = {
+  "แฟนตาซี": "🐉",
+  "โรแมนติก": "💕",
+  "แอ็คชั่น": "⚔️",
+  "ดราม่า": "🎭",
+  "สยองขวัญ": "👻",
+  "ลึกลับ": "🔍",
+  "Sci-Fi": "🚀",
+  "คอมเมดี้": "😂",
+};
+
 export default function Home() {
   const [, navigate] = useLocation();
   const [novels, setNovels] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
+  const [categoryNovels, setCategoryNovels] = useState<Record<string, any[]>>({});
+  const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [publicStats, setPublicStats] = useState<{ totalNovels: number; totalUsers: number; totalViews: number; totalChapters: number } | null>(null);
 
@@ -41,12 +65,28 @@ export default function Home() {
       try {
         const [novelsRes, trendingRes, statsRes] = await Promise.all([
           api.getNovels({ limit: "12", sort: "latest" }),
-          api.getNovels({ limit: "8", sort: "popular" }),
+          api.getNovels({ limit: "10", sort: "popular" }),
           api.getPublicStats().catch(() => null),
         ]);
         setNovels(novelsRes.novels || []);
         setTrending(trendingRes.novels || []);
         if (statsRes) setPublicStats(statsRes);
+
+        // Load novels per category (6 each)
+        const catPromises = categories.map(async (cat) => {
+          try {
+            const res = await api.getNovels({ limit: "6", category: cat.name });
+            return { name: cat.name, novels: res.novels || [], total: res.total || 0 };
+          } catch {
+            return { name: cat.name, novels: [], total: 0 };
+          }
+        });
+        const catResults = await Promise.all(catPromises);
+        const catMap: Record<string, any[]> = {};
+        const catTotals: Record<string, number> = {};
+        catResults.forEach((r) => { catMap[r.name] = r.novels; catTotals[r.name] = r.total; });
+        setCategoryNovels(catMap);
+        setCategoryTotals(catTotals);
       } catch (e) {
         toast.error("ไม่สามารถโหลดข้อมูลได้");
       } finally {
@@ -91,13 +131,13 @@ export default function Home() {
                 </button>
               </div>
               <div className="flex items-center gap-5 text-sm text-slate-500 pt-2">
-                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-primary" /> 1,000+ เรื่อง</span>
-                <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-primary" /> 5,000+ สมาชิก</span>
+                <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-primary" /> {publicStats ? `${publicStats.totalNovels.toLocaleString()} เรื่อง` : "1,000+ เรื่อง"}</span>
+                <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-primary" /> {publicStats ? `${publicStats.totalUsers.toLocaleString()} สมาชิก` : "5,000+ สมาชิก"}</span>
                 <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-primary" /> ฟรี 100%</span>
               </div>
             </div>
 
-            {/* Right: Hero Image — visible on ALL screen sizes */}
+            {/* Right: Hero Image */}
             <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-2xl transform rotate-1 hover:rotate-0 transition-transform duration-500">
                 <img
@@ -106,14 +146,13 @@ export default function Home() {
                   className="w-full h-[240px] sm:h-[320px] lg:h-[420px] object-cover"
                 />
               </div>
-              {/* Floating card — hidden on small mobile, shown sm+ */}
               <div className="hidden sm:flex absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 items-center gap-3 border border-slate-100">
                 <div className="w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900">ยอดอ่านวันนี้</p>
-                  <p className="text-xs text-slate-500">10,000+ ครั้ง</p>
+                  <p className="text-xs text-slate-500">{publicStats ? `${publicStats.totalViews.toLocaleString()} ครั้ง` : "10,000+ ครั้ง"}</p>
                 </div>
               </div>
               <div className="hidden sm:flex absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-3 items-center gap-2 border border-slate-100">
@@ -154,7 +193,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== BESTSELLING / TRENDING ===== */}
+      {/* ===== TRENDING TOP 10 ===== */}
       <section className="py-12 bg-slate-50">
         <div className="container">
           <div className="section-header">
@@ -163,8 +202,8 @@ export default function Home() {
                 <Flame className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">นิยายมาแรง</h2>
-                <p className="text-sm text-slate-500">เรื่องยอดนิยมที่ทุกคนกำลังอ่าน</p>
+                <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">นิยายมาแรง TOP 10</h2>
+                <p className="text-sm text-slate-500">เรื่องยอดนิยมที่มีคนดูสูงสุด</p>
               </div>
             </div>
             <Link href="/search?sort=popular" className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
@@ -184,7 +223,109 @@ export default function Home() {
             </div>
           ) : trending.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-              {trending.map((novel) => (
+              {trending.map((novel, idx) => (
+                <div key={novel.id} className="relative">
+                  {idx < 3 && (
+                    <div className={`absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg ${idx === 0 ? "bg-yellow-500" : idx === 1 ? "bg-slate-400" : "bg-amber-700"}`}>
+                      {idx + 1}
+                    </div>
+                  )}
+                  {idx >= 3 && (
+                    <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-slate-600 text-white text-sm font-bold shadow-lg">
+                      {idx + 1}
+                    </div>
+                  )}
+                  <BookCard novel={novel} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-slate-400">
+              <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">ยังไม่มีนิยายในระบบ</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===== EACH CATEGORY — 6 novels per category ===== */}
+      {categories.map((cat) => {
+        const catNovels = categoryNovels[cat.name] || [];
+        if (catNovels.length === 0 && !loading) return null;
+        const colors = categoryColors[cat.name] || "bg-slate-50 border-slate-200 text-slate-700";
+        const icon = categoryIcons[cat.name] || "📚";
+
+        return (
+          <section key={cat.name} className="py-10 bg-white border-t border-slate-100">
+            <div className="container">
+              <div className="section-header">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${colors}`}>
+                    <span className="text-xl">{icon}</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold font-[Kanit] text-slate-900">{cat.name}</h2>
+                    <p className="text-sm text-slate-500">{cat.desc} — {categoryTotals[cat.name] || catNovels.length} เรื่อง</p>
+                  </div>
+                </div>
+                <Link href={`/genre/${cat.name}`} className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
+                  ดูทั้งหมด <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              {loading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="bg-slate-200 rounded-xl aspect-[3/4]" />
+                      <div className="mt-3 h-4 bg-slate-200 rounded w-3/4" />
+                      <div className="mt-2 h-3 bg-slate-200 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {catNovels.map((novel) => (
+                    <BookCard key={novel.id} novel={novel} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* ===== NEW RELEASES / LATEST ===== */}
+      <section className="py-12 bg-slate-50">
+        <div className="container">
+          <div className="section-header">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <Clock className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">อัปเดตล่าสุด</h2>
+                <p className="text-sm text-slate-500">นิยายที่เพิ่งเพิ่มเข้ามาใหม่</p>
+              </div>
+            </div>
+            <Link href="/search?sort=latest" className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
+              ดูทั้งหมด <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-slate-200 rounded-xl aspect-[3/4]" />
+                  <div className="mt-3 h-4 bg-slate-200 rounded w-3/4" />
+                  <div className="mt-2 h-3 bg-slate-200 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : novels.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {novels.map((novel) => (
                 <BookCard key={novel.id} novel={novel} />
               ))}
             </div>
@@ -198,7 +339,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== VIP & COINS — Bookworm Light Style with illustration BG ===== */}
+      {/* ===== VIP & COINS — Moved to bottom ===== */}
       <section className="py-14 relative overflow-hidden">
         <img src={VIP_BG} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/80" />
@@ -259,51 +400,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== NEW RELEASES ===== */}
-      <section className="py-12 bg-white">
-        <div className="container">
-          <div className="section-header">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">อัปเดตล่าสุด</h2>
-                <p className="text-sm text-slate-500">นิยายที่เพิ่งเพิ่มเข้ามาใหม่</p>
-              </div>
-            </div>
-            <Link href="/search?sort=latest" className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
-              ดูทั้งหมด <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-slate-200 rounded-xl aspect-[3/4]" />
-                  <div className="mt-3 h-4 bg-slate-200 rounded w-3/4" />
-                  <div className="mt-2 h-3 bg-slate-200 rounded w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : novels.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {novels.map((novel) => (
-                <BookCard key={novel.id} novel={novel} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 text-slate-400">
-              <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-lg font-medium">ยังไม่มีนิยายในระบบ</p>
-              <p className="text-sm">กรุณาเพิ่มนิยายผ่าน Admin Panel</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ===== PROMO BANNER with illustration ===== */}
+      {/* ===== PROMO BANNER ===== */}
       <section className="relative py-14 overflow-hidden">
         <img src={PROMO_IMG} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-white/40" />

@@ -248,7 +248,7 @@ async function startServer() {
       if (status) { sql += " AND status=?"; params.push(status); }
       if (featured === "true") { sql += " AND isFeatured=1"; }
       if (search) { sql += " AND (title LIKE ? OR description LIKE ?)"; params.push(`%${search}%`, `%${search}%`); }
-      const sortMap: any = { newest: "createdAt DESC", popular: "viewCount DESC", updated: "updatedAt DESC" };
+      const sortMap: any = { newest: "createdAt DESC", latest: "createdAt DESC", popular: "viewCount DESC", updated: "updatedAt DESC" };
       sql += ` ORDER BY ${sortMap[sort as string] || "updatedAt DESC"}`;
       const limitNum = parseInt(lim as string) || 20;
       const offsetNum = parseInt(off as string) || 0;
