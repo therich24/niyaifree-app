@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, ArrowLeft, Settings2, Palette } from "lucide
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, SITE_URL } from "@/hooks/useSEO";
+import BreadcrumbJsonLd from "@/components/BreadcrumbJsonLd";
 
 const BG_COLORS = [
   { name: "ขาว", value: "#FFFFFF" },
@@ -117,6 +118,16 @@ export default function Reader() {
 
   return (
     <div className="min-h-screen" style={{ background: bgColor, color: textColor }}>
+      {/* Breadcrumb Structured Data */}
+      {novel && (
+        <BreadcrumbJsonLd items={[
+          { name: "หน้าแรก", url: "/" },
+          { name: novel.category || "นิยาย", url: `/genre/${encodeURIComponent(novel.category || "")}` },
+          { name: novel.title, url: `/novel/${novel.slug || novelId}` },
+          { name: `ตอนที่ ${chNum}`, url: `/read/${novelId}/${chNum}` },
+        ]} />
+      )}
+
       {/* Reading progress bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-slate-200">
         <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />

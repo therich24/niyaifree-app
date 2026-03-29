@@ -9,6 +9,7 @@ import { ArrowLeft, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, SITE_URL } from "@/hooks/useSEO";
+import BreadcrumbJsonLd from "@/components/BreadcrumbJsonLd";
 
 export default function Genre() {
   const { name } = useParams<{ name: string }>();
@@ -73,6 +74,11 @@ export default function Genre() {
 
   return (
     <div className="min-h-screen bg-background">
+      <BreadcrumbJsonLd items={[
+        { name: "หน้าแรก", url: "/" },
+        { name: `หมวดหมู่`, url: "/search" },
+        { name: pageTitle, url: `/genre/${encodeURIComponent(name || "")}` },
+      ]} />
       <div className="py-4 border-b border-slate-100 bg-slate-50">
         <div className="container flex items-center justify-between">
           <div className="flex items-center gap-3">

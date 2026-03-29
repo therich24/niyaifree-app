@@ -5,10 +5,12 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, Eye, Heart, Clock, Bookmark, ChevronRight, ArrowLeft, Download, FileText, Coins, Crown, X, Loader2 } from "lucide-react";
+import { BookOpen, Eye, Heart, Clock, Bookmark, ChevronRight, ArrowLeft, Download, FileText, Coins, Crown, X, Loader2, ShieldCheck } from "lucide-react";
+import { isNovelCertified } from "@/lib/novelStandard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, SITE_URL } from "@/hooks/useSEO";
+import BreadcrumbJsonLd, { BookJsonLd } from "@/components/BreadcrumbJsonLd";
 
 export default function NovelDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -119,6 +121,21 @@ export default function NovelDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Structured Data */}
+      <BreadcrumbJsonLd items={[
+        { name: "หน้าแรก", url: "/" },
+        { name: novel.category, url: `/genre/${encodeURIComponent(novel.category)}` },
+        { name: novel.title, url: `/novel/${slug}` },
+      ]} />
+      <BookJsonLd
+        title={novel.title}
+        author={novel.author}
+        description={novel.description || `นิยาย ${novel.title}`}
+        coverUrl={novel.coverUrl}
+        category={novel.category}
+        url={`/novel/${slug}`}
+      />
+
       {/* Breadcrumb */}
       <div className="py-4 border-b border-slate-100 bg-slate-50">
         <div className="container">
@@ -142,24 +159,34 @@ export default function NovelDetail() {
                     <span className="text-white text-center text-lg font-semibold font-[Kanit]">{novel.title}</span>
                   </div>
                 )}
-                {novel.status === "writing" && (
+                {isNovelCertified(novel) ? (
+                  <div className="absolute top-3 left-0 bg-emerald-500 px-3 py-1 text-xs font-bold text-white rounded-r-lg flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> การันตีมาตรฐาน
+                  </div>
+                ) : novel.status === "writing" ? (
                   <div className="absolute top-3 left-0 bg-amber-500 px-3 py-1 text-xs font-bold text-white rounded-r-lg">
                     กำลังเขียน
                   </div>
-                )}
-                {novel.status === "completed" && (
-                  <div className="absolute top-3 left-0 bg-emerald-500 px-3 py-1 text-xs font-bold text-white rounded-r-lg">
+                ) : novel.status === "completed" ? (
+                  <div className="absolute top-3 left-0 bg-sky-500 px-3 py-1 text-xs font-bold text-white rounded-r-lg">
                     จบแล้ว
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
             {/* Details */}
             <div className="flex-1">
-              <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full mb-3">
-                {novel.category}
-              </span>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
+                  {novel.category}
+                </span>
+                {isNovelCertified(novel) && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-semibold rounded-full border border-emerald-200">
+                    <ShieldCheck className="w-3.5 h-3.5" /> ผ่านมาตรฐาน NiYAIFREE
+                  </span>
+                )}
+              </div>
               <h1 className="text-2xl md:text-3xl font-bold font-[Kanit] text-slate-900 mt-1 mb-2">
                 {novel.title}
               </h1>

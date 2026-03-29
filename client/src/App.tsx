@@ -23,6 +23,7 @@ import VipPage from "./pages/VipPage";
 import CoinsPage from "./pages/CoinsPage";
 import EbookLibrary from "./pages/EbookLibrary";
 import Analytics from "./pages/Analytics";
+import Sitemap from "./pages/Sitemap";
 
 import { usePageTracker } from "./hooks/usePageTracker";
 
@@ -78,6 +79,9 @@ function Router() {
 
         {/* Analytics */}
         <Route path="/analytics" component={Analytics} />
+
+        {/* Sitemap */}
+        <Route path="/sitemap.xml" component={Sitemap} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

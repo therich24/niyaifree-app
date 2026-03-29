@@ -1,10 +1,12 @@
 /*
   NiYAIFREE BookCard — Bookworm Bookstore Style
   Clean white card, book cover prominent, subtle shadow, hover lift
+  + Certified badge for novels that pass quality standards
 */
 import { Link } from "wouter";
-import { Eye, BookOpen, Star, Heart, Bookmark } from "lucide-react";
+import { Eye, BookOpen, Star, Heart, Bookmark, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { isNovelCertified } from "@/lib/novelStandard";
 
 interface BookCardProps {
   novel: {
@@ -15,6 +17,7 @@ interface BookCardProps {
     category: string;
     coverUrl: string;
     totalChapters: number;
+    totalWords?: number;
     viewCount: number;
     likeCount: number;
     ageRating?: string;
@@ -27,6 +30,7 @@ interface BookCardProps {
 export default function BookCard({ novel, size = "md" }: BookCardProps) {
   const [hovered, setHovered] = useState(false);
   const coverH = size === "lg" ? "h-72" : size === "sm" ? "h-44" : "h-56";
+  const certified = isNovelCertified(novel);
 
   return (
     <div
@@ -45,23 +49,28 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-rose-100 via-rose-50 to-amber-50 flex items-center justify-center p-4 border-b border-rose-100">
-              <span className="text-slate-800 text-center text-sm font-semibold leading-snug font-[Kanit]">
+            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
+              <span className="text-white text-center text-sm font-semibold leading-snug font-[Kanit]">
                 {novel.title}
               </span>
             </div>
           )}
 
-          {/* Status Badge */}
-          {novel.status === "completed" && novel.totalChapters >= 50 ? (
-            <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
+          {/* Status Badge — top-left */}
+          {certified ? (
+            <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 flex items-center gap-0.5">
+              <ShieldCheck className="w-3 h-3" /> การันตี
+            </div>
+          ) : novel.status === "completed" ? (
+            <div className="absolute top-2 left-2 bg-sky-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
               จบแล้ว
             </div>
           ) : (
             <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
-              อยู่ระหว่างเขียน
+              กำลังเขียน
             </div>
           )}
+
           {novel.isFeatured && (
             <div className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
               <Star className="w-3 h-3 inline mr-0.5" />แนะนำ
@@ -115,11 +124,16 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
             </span>
           </div>
 
-          {/* Category */}
-          <div className="mt-2">
+          {/* Category + Certified inline */}
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
             <span className="inline-block px-2 py-0.5 bg-primary/5 text-primary text-[10px] rounded-full font-medium">
               {novel.category}
             </span>
+            {certified && (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] rounded-full font-semibold border border-emerald-200">
+                <ShieldCheck className="w-2.5 h-2.5" /> ผ่านมาตรฐาน
+              </span>
+            )}
           </div>
         </div>
       </Link>

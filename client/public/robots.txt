@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /ceo
+Disallow: /member
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://niyaifree.com/sitemap.xml
