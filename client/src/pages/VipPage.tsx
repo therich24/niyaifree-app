@@ -5,8 +5,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { Crown, BookOpen, Download, Shield, Star, Check, ChevronRight, Zap } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
+import { formatThaiDateLocale } from "@/lib/thaiDate";
 
 export default function VipPage() {
+  useSEO({
+    title: "สมัคร VIP — สิทธิพิเศษสำหรับคนรักการอ่าน",
+    description: "สมัคร VIP NiYAIFREE อ่านไม่จำกัด ดาวน์โหลด eBook ฟรี 10 เล่ม/เดือน ไม่มีโฆษณา",
+    keywords: "VIP, สมัคร VIP, อ่านนิยายฟรี, niyaifree",
+  });
+
   const { user } = useAuth();
   const isVip = user?.vipUntil && new Date(user.vipUntil) > new Date();
 
@@ -35,7 +43,7 @@ export default function VipPage() {
           {isVip && (
             <div className="mt-6 inline-flex items-center gap-2 bg-primary/10 text-primary px-6 py-3 rounded-full font-bold">
               <Crown className="w-5 h-5" />
-              คุณเป็นสมาชิก VIP อยู่แล้ว (ถึง {new Date(user!.vipUntil!).toLocaleDateString("th-TH")})
+              คุณเป็นสมาชิก VIP อยู่แล้ว (ถึง {formatThaiDateLocale(user!.vipUntil!)})
             </div>
           )}
         </div>

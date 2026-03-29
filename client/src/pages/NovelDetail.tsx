@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, Eye, Heart, Clock, Bookmark, ChevronRight, ArrowLeft, Download, FileText, Coins, Crown, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO, SITE_URL } from "@/hooks/useSEO";
 
 export default function NovelDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,6 +27,21 @@ export default function NovelDetail() {
       api.getNovel(slug).then(setNovel).catch(() => toast.error("ไม่พบนิยาย")).finally(() => setLoading(false));
     }
   }, [slug]);
+
+  // SEO: Dynamic title/meta based on novel data
+  useSEO(novel ? {
+    title: `${novel.title} — อ่านฟรี`,
+    description: novel.description
+      ? `${novel.title} — ${novel.description.substring(0, 150)}... อ่านฟรีที่ NiYAIFREE ${novel.totalChapters} ตอน หมวด${novel.category}`
+      : `อ่านนิยาย ${novel.title} ฟรี ${novel.totalChapters} ตอน หมวด${novel.category} โดย ${novel.author} | NiYAIFREE`,
+    ogTitle: `${novel.title} — อ่านฟรีที่ NiYAIFREE`,
+    ogDescription: novel.description?.substring(0, 200) || `นิยาย ${novel.title} ${novel.totalChapters} ตอน หมวด${novel.category}`,
+    ogImage: novel.coverUrl || undefined,
+    ogUrl: `${SITE_URL}/novel/${slug}`,
+    ogType: "book",
+    canonical: `${SITE_URL}/novel/${slug}`,
+    keywords: `${novel.title}, ${novel.category}, นิยาย${novel.category}, อ่านนิยายฟรี, ${novel.author}, niyaifree`,
+  } : {});
 
   const handleBookmark = async () => {
     if (!user) { toast.error("กรุณาเข้าสู่ระบบก่อน"); return; }

@@ -12,7 +12,8 @@ import {
   Activity, MapPin, Layers, ArrowUpRight, ArrowDownRight,
   FileText, Hash, Type, FolderOpen, Calendar, PenTool
 } from "lucide-react";
-import { formatThaiDate, formatThaiDateShort, formatThaiDateMedium } from "@/lib/thaiDate";
+import { formatThaiDate, formatThaiDateShort, formatThaiDateMedium, formatThaiTime } from "@/lib/thaiDate";
+import { useSEO } from "@/hooks/useSEO";
 
 interface ContentStats {
   totalNovels: number;
@@ -96,6 +97,12 @@ function SimpleBarChart({ data, maxVal, color }: { data: { label: string; value:
 }
 
 export default function Analytics() {
+  useSEO({
+    title: "สถิติการเข้าชม NiYAIFREE",
+    description: "สถิติการเข้าชมเว็บไซต์ NiYAIFREE ยอดผู้เข้าชม หน้าเพจยอดนิยม ประเทศ นิยายยอดนิยม",
+    noindex: true,
+  });
+
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -940,7 +947,7 @@ export default function Analytics() {
                         <tr key={i} className="hover:bg-emerald-50/30 transition-colors">
                           <td className="px-4 py-2.5">
                             <span className="text-xs text-slate-500 font-mono">
-                              {new Date(pv.createdAt).toLocaleString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              {formatThaiTime(pv.createdAt)}
                             </span>
                           </td>
                           <td className="px-4 py-2.5">

@@ -8,8 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Download, FileText, ArrowLeft, BookOpen, Crown, Coins, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatThaiDateMedium } from "@/lib/thaiDate";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function EbookLibrary() {
+  useSEO({ title: "eBook ของฉัน", noindex: true });
+
   const { user } = useAuth();
   const [downloads, setDownloads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +154,7 @@ export default function EbookLibrary() {
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(dl.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}
+                          {formatThaiDateMedium(dl.createdAt)}
                         </span>
                         {dl.coinCost > 0 ? (
                           <span className="flex items-center gap-1 text-blue-600">

@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChevronLeft, ChevronRight, ArrowLeft, Settings2, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO, SITE_URL } from "@/hooks/useSEO";
 
 const BG_COLORS = [
   { name: "ขาว", value: "#FFFFFF" },
@@ -23,9 +24,10 @@ export default function Reader() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [chapter, setChapter] = useState<any>(null);
+  const [novel, setNovel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [bgColor, setBgColor] = useState(localStorage.getItem("reader_bg") || "#FFF8E7");
+  const [bgColor, setBgColor] = useState(localStorage.getItem("reader_bg") || "#FFFFFF");
   const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem("reader_fs") || "18"));
   const [showSettings, setShowSettings] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -34,12 +36,26 @@ export default function Reader() {
   const isDark = bgColor === "#1A1A1A";
   const textColor = isDark ? "#E0E0E0" : "#2D2D2D";
 
+  // SEO: Dynamic title for reading page
+  useSEO(chapter && novel ? {
+    title: `${novel.title} ตอนที่ ${chapterNumber} ${chapter.title ? `— ${chapter.title}` : ""}`,
+    description: `อ่าน ${novel.title} ตอนที่ ${chapterNumber} ${chapter.title || ""} ฟรีที่ NiYAIFREE หมวด${novel.category || ""}`,
+    ogTitle: `${novel.title} ตอนที่ ${chapterNumber}`,
+    ogImage: novel.coverUrl || undefined,
+    ogUrl: `${SITE_URL}/read/${novelId}/${chapterNumber}`,
+    canonical: `${SITE_URL}/read/${novelId}/${chapterNumber}`,
+    keywords: `${novel.title}, ตอนที่ ${chapterNumber}, อ่านนิยายฟรี, niyaifree`,
+  } : {});
+
   useEffect(() => {
     if (novelId && chapterNumber) {
       setLoading(true);
       startTime.current = Date.now();
-      api.getChapter(parseInt(novelId), parseInt(chapterNumber))
-        .then(setChapter)
+      Promise.all([
+        api.getChapter(parseInt(novelId), parseInt(chapterNumber)),
+        api.getNovel(novelId)
+      ])
+        .then(([ch, nv]) => { setChapter(ch); setNovel(nv); })
         .catch(() => toast.error("ไม่พบตอนนี้"))
         .finally(() => setLoading(false));
     }
@@ -112,9 +128,14 @@ export default function Reader() {
           <Link href={`/novel/${novelId}`} className="flex items-center gap-1 text-sm text-primary no-underline hover:underline">
             <ArrowLeft className="w-4 h-4" /> กลับ
           </Link>
-          <span className="text-sm font-medium font-[Kanit] truncate max-w-[200px]">
-            ตอนที่ {chNum}
-          </span>
+          <div className="flex flex-col items-center truncate max-w-[60%]">
+            <Link href={`/novel/${novelId}`} className="text-xs text-primary hover:underline truncate max-w-full no-underline">
+              {novel?.title || "กลับหน้าเรื่อง"}
+            </Link>
+            <span className="text-sm font-medium font-[Kanit]">
+              ตอนที่ {chNum}
+            </span>
+          </div>
           <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-md hover:bg-black/5">
             <Settings2 className="w-4 h-4" />
           </button>

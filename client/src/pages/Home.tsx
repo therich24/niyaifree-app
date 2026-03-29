@@ -11,6 +11,7 @@ import {
   BookOpen, TrendingUp, Clock, Star, ChevronRight,
   ArrowRight, Flame, Crown, Users, Sparkles, Zap, Heart
 } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/hero-banner-P3KGaCtAhVoFcdmej49SAQ.webp";
 const VIP_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663414264641/crk9cv8BwHvaqTcJKtqHfc/vip-section-bg-fhkESx7LZqPuVbVcVHTUqg.webp";
@@ -53,6 +54,14 @@ const categoryIcons: Record<string, string> = {
 
 export default function Home() {
   const [, navigate] = useLocation();
+
+  useSEO({
+    title: undefined, // ใช้ default title
+    description: "อ่านนิยายฟรี ครบทุกแนว อัปเดตทุกวัน แฟนตาซี โรแมนติก แอ็คชั่น ดราม่า สยองขวัญ ลึกลับ Sci-Fi คอมเมดี้ กว่า 100 เรื่อง | niyaifree.com",
+    keywords: "อ่านนิยายฟรี, นิยายออนไลน์, นิยายไทย, แฟนตาซี, โรแมนติก, แอ็คชั่น, ดราม่า, สยองขวัญ, ลึกลับ, Sci-Fi, คอมเมดี้, niyaifree",
+    canonical: "https://niyaifree.com",
+    ogUrl: "https://niyaifree.com",
+  });
   const [novels, setNovels] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any[]>([]);

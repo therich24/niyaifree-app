@@ -10,8 +10,12 @@ import { api } from "@/lib/api";
 import { BookOpen, Bookmark, Clock, Gift, Share2, Eye, ChevronRight, User, Crown, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatThaiDateLocale } from "@/lib/thaiDate";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Dashboard() {
+  useSEO({ title: "แดชบอร์ด", noindex: true });
+
   const { user, logout, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const [history, setHistory] = useState<any[]>([]);
@@ -60,7 +64,7 @@ export default function Dashboard() {
                 )}
                 {isFreeActive && (
                   <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-700">
-                    อ่านฟรีถึง {new Date(user.freeReadUntil!).toLocaleDateString("th-TH")}
+                    อ่านฟรีถึง {formatThaiDateLocale(user.freeReadUntil!)}
                   </span>
                 )}
                 <span className="text-sm text-slate-500">รหัสแนะนำ: <strong>{user.referralCode}</strong></span>

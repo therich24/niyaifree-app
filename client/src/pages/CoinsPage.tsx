@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Coins, Download, Shield, Check, ChevronRight } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 
 const COIN_PACKAGES = [
   { coins: 100, price: 100, label: "100 Coins", popular: false },
@@ -14,6 +15,8 @@ const COIN_PACKAGES = [
 ];
 
 export default function CoinsPage() {
+  useSEO({ title: "ซื้อ Coins", description: "ซื้อ Coins สำหรับดาวน์โหลด eBook ที่ NiYAIFREE", noindex: true });
+
   const { user } = useAuth();
   const [selected, setSelected] = useState(1);
 

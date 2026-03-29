@@ -11,8 +11,12 @@ import {
   User, BookOpen, Bookmark, Crown, Coins, Clock, Heart,
   Settings, ChevronRight, Star, Download, Shield
 } from "lucide-react";
+import { formatThaiDateLocale } from "@/lib/thaiDate";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function MemberDashboard() {
+  useSEO({ title: "หน้าสมาชิก", noindex: true });
+
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
@@ -164,7 +168,7 @@ export default function MemberDashboard() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-slate-900">{item.novelTitle || "นิยาย"}</p>
-                        <p className="text-xs text-slate-500">ตอนที่ {item.chapterNumber} · {item.readAt ? new Date(item.readAt).toLocaleDateString("th-TH") : ""}</p>
+                        <p className="text-xs text-slate-500">ตอนที่ {item.chapterNumber} · {item.readAt ? formatThaiDateLocale(item.readAt) : ""}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-300" />
                     </Link>
@@ -199,7 +203,7 @@ export default function MemberDashboard() {
                       <p className="text-sm font-semibold text-slate-900">{item.novelTitle || "นิยาย"}</p>
                       <p className="text-xs text-slate-500">ตอนที่ {item.chapterNumber}</p>
                     </div>
-                    <p className="text-xs text-slate-400">{item.readAt ? new Date(item.readAt).toLocaleDateString("th-TH") : ""}</p>
+                    <p className="text-xs text-slate-400">{item.readAt ? formatThaiDateLocale(item.readAt) : ""}</p>
                   </Link>
                 ))}
               </div>
@@ -248,7 +252,7 @@ export default function MemberDashboard() {
                 <div>
                   <h3 className="font-bold font-[Kanit] text-lg text-amber-900">สถานะ VIP</h3>
                   <p className="text-sm text-amber-700">
-                    {isVip ? `VIP ถึง ${new Date(user.vipUntil!).toLocaleDateString("th-TH")}` : "ยังไม่ได้สมัคร VIP"}
+                    {isVip ? `VIP ถึง ${formatThaiDateLocale(user.vipUntil!)}` : "ยังไม่ได้สมัคร VIP"}
                   </p>
                 </div>
               </div>

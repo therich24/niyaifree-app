@@ -7,8 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Login() {
+  useSEO({ title: "เข้าสู่ระบบ", description: "เข้าสู่ระบบ NiYAIFREE อ่านนิยายฟรีครบทุกแนว", noindex: true });
+
   const { login } = useAuth();
   const [, setLocation] = useLocation();
   const [loginStr, setLoginStr] = useState("");

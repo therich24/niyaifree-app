@@ -7,8 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Register() {
+  useSEO({ title: "สมัครสมาชิกฟรี", description: "สมัครสมาชิก NiYAIFREE ฟรี อ่านนิยายฟรีไม่จำกัด สะสมแต้ม ดาวน์โหลด eBook", noindex: true });
+
   const { register } = useAuth();
   const [, setLocation] = useLocation();
   const [form, setForm] = useState({ username: "", email: "", password: "", confirmPassword: "", firstName: "", lastName: "", phone: "", province: "", referralCode: "" });

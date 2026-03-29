@@ -9,8 +9,11 @@ import {
   Crown, BookOpen, Users, TrendingUp, DollarSign, Eye, BarChart3,
   LogOut, Settings, Shield, Activity, Coins, Download, Star
 } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function CeoDashboard() {
+  useSEO({ title: "CEO Dashboard", noindex: true });
+
   const [authed, setAuthed] = useState(false);
   const [ceoUser, setCeoUser] = useState<any>(null);
   const [username, setUsername] = useState("");

@@ -9,8 +9,11 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { User, Mail, Phone, Lock, Save, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function MemberProfile() {
+  useSEO({ title: "แก้ไขโปรไฟล์", noindex: true });
+
   const { user, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const [firstName, setFirstName] = useState("");

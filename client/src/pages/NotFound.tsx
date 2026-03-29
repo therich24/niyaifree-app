@@ -1,7 +1,10 @@
 import { BookOpen, Home, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function NotFound() {
+  useSEO({ title: "404 ไม่พบหน้าที่ต้องการ", noindex: true });
+
   const [, setLocation] = useLocation();
 
   return (

@@ -8,6 +8,7 @@ import { Search, ArrowLeft, Filter, X, ChevronDown, SlidersHorizontal } from "lu
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO, SITE_URL } from "@/hooks/useSEO";
 
 const CATEGORIES = [
   { value: "", label: "ทุกหมวดหมู่" },
@@ -59,6 +60,15 @@ export default function SearchPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialQ = urlParams.get("q") || "";
   const [query, setQuery] = useState(initialQ);
+
+  useSEO({
+    title: initialQ ? `ค้นหา: ${initialQ}` : "ค้นหานิยาย",
+    description: initialQ
+      ? `ผลการค้นหา \"${initialQ}\" บน NiYAIFREE อ่านนิยายฟรีครบทุกแนว`
+      : "ค้นหานิยายที่ชอบ กรองตามหมวดหมู่ สถานะ จำนวนตอน ที่ NiYAIFREE",
+    canonical: `${SITE_URL}/search${initialQ ? `?q=${encodeURIComponent(initialQ)}` : ""}`,
+    keywords: `ค้นหานิยาย, อ่านนิยายฟรี, niyaifree${initialQ ? `, ${initialQ}` : ""}`,
+  });
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);

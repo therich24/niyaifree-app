@@ -8,6 +8,7 @@ import BookCard from "@/components/BookCard";
 import { ArrowLeft, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO, SITE_URL } from "@/hooks/useSEO";
 
 export default function Genre() {
   const { name } = useParams<{ name: string }>();
@@ -55,6 +56,20 @@ export default function Genre() {
   const pageTitle = isSpecial
     ? decodedName === "popular" ? "นิยายมาแรง" : decodedName === "newest" ? "อัปเดตล่าสุด" : "แนะนำสำหรับคุณ"
     : `หมวดหมู่: ${decodedName}`;
+
+  // SEO
+  const seoTitle = isSpecial
+    ? decodedName === "popular" ? "นิยายยอดนิยม อ่านฟรี" : decodedName === "newest" ? "นิยายอัปเดตล่าสุด" : "นิยายแนะนำ"
+    : `นิยาย${decodedName} อ่านฟรี ${total} เรื่อง`;
+  useSEO({
+    title: seoTitle,
+    description: isSpecial
+      ? `${seoTitle} ที่ NiYAIFREE อ่านฟรีไม่มีค่าใช้จ่าย`
+      : `อ่านนิยาย${decodedName}ฟรี ${total} เรื่อง อัปเดตทุกวัน ที่ NiYAIFREE`,
+    canonical: `${SITE_URL}/genre/${encodeURIComponent(decodedName)}`,
+    ogUrl: `${SITE_URL}/genre/${encodeURIComponent(decodedName)}`,
+    keywords: `นิยาย${decodedName}, อ่านนิยายฟรี, ${decodedName}, niyaifree`,
+  });
 
   return (
     <div className="min-h-screen bg-background">

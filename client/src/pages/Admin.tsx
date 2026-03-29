@@ -13,10 +13,14 @@ import {
   BarChart3, BookOpen, Users, Key, Settings, Wand2, Shield, Plus, Trash2, Edit,
   ChevronRight, Eye, FileText, CheckCircle, XCircle, RefreshCw, Zap, PenTool
 } from "lucide-react";
+import { formatThaiDateTimeLocale } from "@/lib/thaiDate";
+import { useSEO } from "@/hooks/useSEO";
 
 type Tab = "dashboard" | "novels" | "users" | "generate" | "proof" | "apikeys" | "adsense" | "settings";
 
 export default function Admin() {
+  useSEO({ title: "Admin Panel", noindex: true });
+
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<Tab>("dashboard");
@@ -513,7 +517,7 @@ function ApiKeysTab() {
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-mono truncate">{k.keyValue.slice(0, 20)}...{k.keyValue.slice(-8)}</p>
-              <p className="text-xs text-muted-foreground">ใช้ไป {k.usageCount} ครั้ง · {k.lastUsedAt ? `ล่าสุด ${new Date(k.lastUsedAt).toLocaleString("th-TH")}` : "ยังไม่ได้ใช้"}</p>
+              <p className="text-xs text-muted-foreground">ใช้ไป {k.usageCount} ครั้ง · {k.lastUsedAt ? `ล่าสุด ${formatThaiDateTimeLocale(k.lastUsedAt)}` : "ยังไม่ได้ใช้"}</p>
             </div>
             <button onClick={() => toggleKey(k)} className={`px-3 py-1 rounded text-xs font-semibold ${k.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
               {k.isActive ? "เปิด" : "ปิด"}
