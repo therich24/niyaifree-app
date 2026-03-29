@@ -36,7 +36,8 @@ export default function CeoDashboard() {
     e.preventDefault();
     setLoginLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const res = await fetch(`${apiBase}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ login: username, password }),
@@ -62,7 +63,8 @@ export default function CeoDashboard() {
 
   async function loadStats(token: string) {
     try {
-      const res = await fetch("/api/admin/stats", {
+      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const res = await fetch(`${apiBase}/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setStats(await res.json());

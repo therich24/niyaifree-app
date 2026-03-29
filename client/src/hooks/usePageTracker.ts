@@ -27,7 +27,8 @@ export function usePageTracker() {
     if (novelMatch) novelId = parseInt(novelMatch[1]);
 
     // Fire and forget — don't block UI
-    fetch("/api/analytics/track", {
+    const apiBase = import.meta.env.VITE_API_URL || "/api";
+    fetch(`${apiBase}/analytics/track`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

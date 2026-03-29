@@ -18,6 +18,31 @@ async function startServer() {
 
   app.use(express.json({ limit: "10mb" }));
 
+  // ============ CORS ============
+  app.use((req, res, next) => {
+    const allowedOrigins = [
+      'https://niyaifree.com',
+      'https://www.niyaifree.com',
+      'https://niyaifree.manus.space',
+      'https://niyaifree-crk9cv8b.manus.space',
+      'http://localhost:3000',
+      'http://localhost:5173',
+    ];
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // ============ AUTH HELPERS ============
   async function createToken(user: any) {
     return new SignJWT({ id: user.id, role: user.role, memberId: user.memberId })
