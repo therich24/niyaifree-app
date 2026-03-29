@@ -142,13 +142,13 @@ async function startServer() {
       const [users]: any = await pool.execute("SELECT COUNT(*) as c FROM users");
       const [novels]: any = await pool.execute("SELECT COUNT(*) as c FROM novels");
       const [chapters]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters");
-      const [views]: any = await pool.execute("SELECT SUM(viewCount) as c FROM novels");
+      const [views]: any = await pool.execute("SELECT SUM(view_count) as c FROM novels");
       const [vipUsers]: any = await pool.execute("SELECT COUNT(*) as c FROM users WHERE vipUntil > NOW()");
       const [totalCoins]: any = await pool.execute("SELECT SUM(coins) as c FROM users");
       const [recentUsers]: any = await pool.execute("SELECT COUNT(*) as c FROM users WHERE createdAt > DATE_SUB(NOW(), INTERVAL 7 DAY)");
-      const [topNovels]: any = await pool.execute("SELECT id, title, viewCount, likeCount FROM novels ORDER BY viewCount DESC LIMIT 10");
-      const [categoryStats]: any = await pool.execute("SELECT category, COUNT(*) as count, SUM(viewCount) as views FROM novels GROUP BY category ORDER BY views DESC");
-      const [apiKeys]: any = await pool.execute("SELECT COUNT(*) as total, SUM(CASE WHEN isActive=1 THEN 1 ELSE 0 END) as active, SUM(usageCount) as totalUsage FROM api_keys");
+      const [topNovels]: any = await pool.execute("SELECT id, title, view_count as viewCount, like_count as likeCount FROM novels ORDER BY view_count DESC LIMIT 10");
+      const [categoryStats]: any = await pool.execute("SELECT category, COUNT(*) as count, SUM(view_count) as views FROM novels GROUP BY category ORDER BY views DESC");
+      const [apiKeys]: any = await pool.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active, SUM(total_requests) as totalUsage FROM api_keys");
       const [subscriptions]: any = await pool.execute("SELECT COUNT(*) as c, SUM(amount) as revenue FROM subscriptions WHERE isActive=1");
       const [coinPurchases]: any = await pool.execute("SELECT SUM(amount) as totalCoins FROM coin_transactions WHERE type='purchase'");
       const [usersByRole]: any = await pool.execute("SELECT role, COUNT(*) as count FROM users GROUP BY role");
@@ -179,8 +179,8 @@ async function startServer() {
   app.get("/api/ceo/financials", authMiddleware(["ceo"]), async (_req, res) => {
     try {
       const [subsByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(amount) as revenue FROM subscriptions GROUP BY month ORDER BY month DESC LIMIT 12");
-      const [coinsByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, type, SUM(amount) as total FROM coin_transactions GROUP BY month, type ORDER BY month DESC LIMIT 50");
-      const [ebooksByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(coinCost) as totalCoins FROM ebook_downloads GROUP BY month ORDER BY month DESC LIMIT 12");
+      const [coinsByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, type, SUM(amount) as total FROM coin_transactions GROUP BY month, type ORDER BY month DESC LIMIT 24");
+      const [ebooksByMonth]: any = await pool.execute("SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count, SUM(coinCost) as revenue FROM ebook_downloads GROUP BY month ORDER BY month DESC LIMIT 12");
       res.json({ subscriptionsByMonth: subsByMonth, coinsByMonth, ebooksByMonth });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -239,17 +239,18 @@ async function startServer() {
   });
 
   // ============ NOVEL ROUTES (PUBLIC) ============
+  // NOTE: novels table uses snake_case: cover_url, view_count, like_count, total_chapters, word_count, created_at, updated_at, is_featured, age_rating, seo_title, seo_description
   app.get("/api/novels", async (req, res) => {
     try {
       const { category, status, featured, search, sort, limit: lim, offset: off } = req.query;
-      let sql = "SELECT id, title, slug, author, category, description, coverUrl, ageRating, status, totalChapters, totalWords, viewCount, likeCount, isFeatured, createdAt FROM novels WHERE 1=1";
+      let sql = `SELECT id, title, slug, author, category, description, cover_url as coverUrl, age_rating as ageRating, status, total_chapters as totalChapters, word_count as totalWords, view_count as viewCount, like_count as likeCount, is_featured as isFeatured, created_at as createdAt FROM novels WHERE 1=1`;
       const params: any[] = [];
       if (category) { sql += " AND category=?"; params.push(category); }
       if (status) { sql += " AND status=?"; params.push(status); }
-      if (featured === "true") { sql += " AND isFeatured=1"; }
+      if (featured === "true") { sql += " AND is_featured=1"; }
       if (search) { sql += " AND (title LIKE ? OR description LIKE ?)"; params.push(`%${search}%`, `%${search}%`); }
-      const sortMap: any = { newest: "createdAt DESC", latest: "createdAt DESC", popular: "viewCount DESC", updated: "updatedAt DESC" };
-      sql += ` ORDER BY ${sortMap[sort as string] || "updatedAt DESC"}`;
+      const sortMap: any = { newest: "created_at DESC", latest: "created_at DESC", popular: "view_count DESC", updated: "updated_at DESC" };
+      sql += ` ORDER BY ${sortMap[sort as string] || "updated_at DESC"}`;
       const limitNum = parseInt(lim as string) || 20;
       const offsetNum = parseInt(off as string) || 0;
       sql += ` LIMIT ${limitNum} OFFSET ${offsetNum}`;
@@ -261,20 +262,29 @@ async function startServer() {
 
   app.get("/api/novels/:slug", async (req, res) => {
     try {
-      const [rows]: any = await pool.execute("SELECT * FROM novels WHERE slug=?", [req.params.slug]);
+      const [rows]: any = await pool.execute(
+        `SELECT id, title, slug, author, category, subcategory, description, cover_url as coverUrl, status, total_chapters as totalChapters, target_chapters as targetChapters, word_count as wordCount, char_count as charCount, age_rating as ageRating, quality_score as qualityScore, view_count as viewCount, like_count as likeCount, is_featured as isFeatured, seo_title as seoTitle, seo_description as seoDescription, created_at as createdAt, updated_at as updatedAt FROM novels WHERE slug=?`,
+        [req.params.slug]
+      );
       if (rows.length === 0) return res.status(404).json({ error: "Not found" });
-      await pool.execute("UPDATE novels SET viewCount = viewCount + 1 WHERE id=?", [rows[0].id]);
-      const [chapters]: any = await pool.execute("SELECT id, chapterNumber, title, wordCount, viewCount, createdAt FROM chapters WHERE novelId=? ORDER BY chapterNumber", [rows[0].id]);
+      await pool.execute("UPDATE novels SET view_count = view_count + 1 WHERE id=?", [rows[0].id]);
+      const [chapters]: any = await pool.execute(
+        "SELECT id, chapter_number as chapterNumber, title, word_count as wordCount, view_count as viewCount, created_at as createdAt FROM chapters WHERE novel_id=? ORDER BY chapter_number",
+        [rows[0].id]
+      );
       res.json({ ...rows[0], chapters });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.get("/api/chapters/:novelId/:chapterNumber", async (req, res) => {
     try {
-      const [rows]: any = await pool.execute("SELECT * FROM chapters WHERE novelId=? AND chapterNumber=?", [req.params.novelId, req.params.chapterNumber]);
+      const [rows]: any = await pool.execute(
+        `SELECT id, novel_id as novelId, chapter_number as chapterNumber, title, content, word_count as wordCount, char_count as charCount, view_count as viewCount, created_at as createdAt FROM chapters WHERE novel_id=? AND chapter_number=?`,
+        [req.params.novelId, req.params.chapterNumber]
+      );
       if (rows.length === 0) return res.status(404).json({ error: "Not found" });
-      await pool.execute("UPDATE chapters SET viewCount = viewCount + 1 WHERE id=?", [rows[0].id]);
-      const [total]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters WHERE novelId=?", [req.params.novelId]);
+      await pool.execute("UPDATE chapters SET view_count = view_count + 1 WHERE id=?", [rows[0].id]);
+      const [total]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters WHERE novel_id=?", [req.params.novelId]);
       res.json({ ...rows[0], totalChapters: total[0].c });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -301,7 +311,7 @@ async function startServer() {
   app.get("/api/member/bookmarks", authMiddleware(), async (req: any, res) => {
     try {
       const [rows] = await pool.execute(
-        `SELECT b.*, n.title, n.slug, n.coverUrl, n.totalChapters, n.category
+        `SELECT b.*, n.title, n.slug, n.cover_url as coverUrl, n.total_chapters as totalChapters, n.category
          FROM bookmarks b JOIN novels n ON b.novelId = n.id WHERE b.userId=? ORDER BY b.createdAt DESC`,
         [req.user.id]
       );
@@ -323,7 +333,7 @@ async function startServer() {
   app.get("/api/member/reading-history", authMiddleware(), async (req: any, res) => {
     try {
       const [rows] = await pool.execute(
-        `SELECT rl.novelId, n.title, n.slug, n.coverUrl, n.category, n.totalChapters,
+        `SELECT rl.novelId, n.title, n.slug, n.cover_url as coverUrl, n.category, n.total_chapters as totalChapters,
                 MAX(rl.chapterNumber) as lastChapter, MAX(rl.progress) as maxProgress, MAX(rl.createdAt) as lastRead
          FROM read_logs rl JOIN novels n ON rl.novelId = n.id
          WHERE rl.userId=? GROUP BY rl.novelId ORDER BY lastRead DESC LIMIT 20`,
@@ -389,7 +399,6 @@ async function startServer() {
     try {
       const { oldPassword, newPassword } = req.body;
       if (!oldPassword || !newPassword) return res.status(400).json({ error: "กรุณากรอกรหัสผ่านให้ครบ" });
-      if (newPassword.length < 6) return res.status(400).json({ error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" });
       const [rows]: any = await pool.execute("SELECT passwordHash FROM users WHERE id=?", [req.user.id]);
       if (!rows[0]) return res.status(404).json({ error: "ไม่พบผู้ใช้" });
       const valid = await bcrypt.compare(oldPassword, rows[0].passwordHash);
@@ -471,35 +480,29 @@ async function startServer() {
   app.get("/api/ebook/generate-pdf/:novelId", authMiddleware(), async (req: any, res: any) => {
     try {
       const novelId = parseInt(req.params.novelId);
-      // Check if user already has a valid download record (purchased within last 30 days)
       const [existing]: any = await pool.execute(
         "SELECT id FROM ebook_downloads WHERE userId=? AND novelId=? AND createdAt > DATE_SUB(NOW(), INTERVAL 30 DAY) LIMIT 1",
         [req.user.id, novelId]
       );
       if (!existing[0]) {
-        // Must purchase first via /api/member/download-ebook
         return res.status(403).json({ error: "กรุณาซื้อ eBook ก่อนดาวน์โหลด" });
       }
 
-      // Fetch novel
       const [novels]: any = await pool.execute("SELECT * FROM novels WHERE id=?", [novelId]);
       if (!novels[0]) return res.status(404).json({ error: "ไม่พบนิยาย" });
       const novel = novels[0];
 
-      // Fetch all chapters
       const [chapters]: any = await pool.execute(
-        "SELECT chapterNumber, title, content FROM chapters WHERE novelId=? ORDER BY chapterNumber ASC",
+        "SELECT chapter_number, title, content FROM chapters WHERE novel_id=? ORDER BY chapter_number ASC",
         [novelId]
       );
       if (chapters.length === 0) return res.status(400).json({ error: "นิยายยังไม่มีตอน" });
 
-      // Font paths
       const fontsDir = path.resolve(__dirname, "..", "server", "fonts");
       const sarabunRegular = path.join(fontsDir, "Sarabun-Regular.ttf");
       const sarabunBold = path.join(fontsDir, "Sarabun-Bold.ttf");
       const kanitBold = path.join(fontsDir, "Kanit-Bold.ttf");
 
-      // Create PDF
       const doc = new PDFDocument({
         size: "A4",
         margins: { top: 72, bottom: 72, left: 60, right: 60 },
@@ -512,14 +515,12 @@ async function startServer() {
         bufferPages: true,
       });
 
-      // Set response headers
       const asciiTitle = novel.title.replace(/[^a-zA-Z0-9]/g, "_");
       const utf8Title = encodeURIComponent(novel.title);
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${asciiTitle}.pdf"; filename*=UTF-8''${utf8Title}.pdf`);
       doc.pipe(res);
 
-      // Register fonts
       doc.registerFont("Sarabun", sarabunRegular);
       doc.registerFont("Sarabun-Bold", sarabunBold);
       doc.registerFont("Kanit-Bold", kanitBold);
@@ -527,29 +528,13 @@ async function startServer() {
       // ---- COVER PAGE ----
       doc.rect(0, 0, doc.page.width, doc.page.height).fill("#E8453C");
       doc.fill("#FFFFFF");
-      doc.font("Kanit-Bold").fontSize(36).text(novel.title, 60, 200, {
-        align: "center",
-        width: doc.page.width - 120,
-      });
+      doc.font("Kanit-Bold").fontSize(36).text(novel.title, 60, 200, { align: "center", width: doc.page.width - 120 });
       doc.moveDown(1);
-      doc.font("Sarabun").fontSize(16).text(novel.author || "NiYAIFREE", {
-        align: "center",
-        width: doc.page.width - 120,
-      });
+      doc.font("Sarabun").fontSize(16).text(novel.author || "NiYAIFREE", { align: "center", width: doc.page.width - 120 });
       doc.moveDown(0.5);
-      doc.font("Sarabun").fontSize(12).text(novel.category || "", {
-        align: "center",
-        width: doc.page.width - 120,
-      });
-      // Logo at bottom
-      doc.font("Kanit-Bold").fontSize(14).text("NiYAIFREE", 60, doc.page.height - 140, {
-        align: "center",
-        width: doc.page.width - 120,
-      });
-      doc.font("Sarabun").fontSize(10).text("niyaifree.com", {
-        align: "center",
-        width: doc.page.width - 120,
-      });
+      doc.font("Sarabun").fontSize(12).text(novel.category || "", { align: "center", width: doc.page.width - 120 });
+      doc.font("Kanit-Bold").fontSize(14).text("NiYAIFREE", 60, doc.page.height - 140, { align: "center", width: doc.page.width - 120 });
+      doc.font("Sarabun").fontSize(10).text("niyaifree.com", { align: "center", width: doc.page.width - 120 });
 
       // ---- TABLE OF CONTENTS ----
       doc.addPage();
@@ -557,42 +542,30 @@ async function startServer() {
       doc.font("Kanit-Bold").fontSize(24).text("สารบัญ", { align: "center" });
       doc.moveDown(1.5);
       for (const ch of chapters) {
-        const chTitle = ch.title ? `ตอนที่ ${ch.chapterNumber} — ${ch.title}` : `ตอนที่ ${ch.chapterNumber}`;
+        const chTitle = ch.title ? `ตอนที่ ${ch.chapter_number} — ${ch.title}` : `ตอนที่ ${ch.chapter_number}`;
         doc.font("Sarabun").fontSize(12).text(chTitle, { continued: false });
         doc.moveDown(0.3);
-        if (doc.y > doc.page.height - 100) {
-          doc.addPage();
-        }
+        if (doc.y > doc.page.height - 100) { doc.addPage(); }
       }
 
       // ---- CHAPTERS ----
       for (const ch of chapters) {
         doc.addPage();
-        // Chapter header
         doc.fill("#E8453C");
-        const chTitle = ch.title ? `ตอนที่ ${ch.chapterNumber} — ${ch.title}` : `ตอนที่ ${ch.chapterNumber}`;
+        const chTitle = ch.title ? `ตอนที่ ${ch.chapter_number} — ${ch.title}` : `ตอนที่ ${ch.chapter_number}`;
         doc.font("Kanit-Bold").fontSize(20).text(chTitle, { align: "center" });
         doc.moveDown(1);
-        // Divider line
         doc.moveTo(60, doc.y).lineTo(doc.page.width - 60, doc.y).strokeColor("#E8453C").lineWidth(1).stroke();
         doc.moveDown(1);
-
-        // Chapter content
         doc.fill("#333333");
         const content = (ch.content || "").replace(/[#*]/g, "").trim();
         const paragraphs = content.split(/\n\n|\n/);
         for (const para of paragraphs) {
           const trimmed = para.trim();
           if (!trimmed) continue;
-          doc.font("Sarabun").fontSize(13).text(trimmed, {
-            align: "left",
-            lineGap: 6,
-            paragraphGap: 8,
-          });
+          doc.font("Sarabun").fontSize(13).text(trimmed, { align: "left", lineGap: 6, paragraphGap: 8 });
           doc.moveDown(0.5);
-          if (doc.y > doc.page.height - 100) {
-            doc.addPage();
-          }
+          if (doc.y > doc.page.height - 100) { doc.addPage(); }
         }
       }
 
@@ -611,16 +584,15 @@ async function startServer() {
       doc.moveDown(2);
       doc.font("Sarabun").fontSize(10).fillColor("#999999").text(
         `สร้างโดย NiYAIFREE — niyaifree.com\n` +
-        `วันที่สร้าง: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}`,
+        `วันที่สร้าง: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Bangkok" })}`,
         { align: "center" }
       );
 
-      // Add footer to all pages
       const pageCount = doc.bufferedPageRange().count;
       for (let i = 0; i < pageCount; i++) {
         doc.switchToPage(i);
         doc.font("Sarabun").fontSize(8).fillColor("#AAAAAA");
-        if (i > 0) { // Skip cover page
+        if (i > 0) {
           doc.text(
             `${novel.title} — NiYAIFREE.com | หน้า ${i}/${pageCount - 1}`,
             60, doc.page.height - 50,
@@ -637,7 +609,6 @@ async function startServer() {
     }
   });
 
-  // Check if user can download a specific novel (for frontend button state)
   app.get("/api/ebook/check/:novelId", authMiddleware(), async (req: any, res) => {
     try {
       const novelId = parseInt(req.params.novelId);
@@ -646,25 +617,16 @@ async function startServer() {
       const isVip = u.vipUntil && new Date(u.vipUntil) > new Date();
       const [costRow]: any = await pool.execute("SELECT settingValue FROM settings WHERE settingKey='coin_per_ebook'");
       const coinCost = parseInt(costRow[0]?.settingValue || "10");
-
-      // Check if already purchased
       const [existing]: any = await pool.execute(
         "SELECT id FROM ebook_downloads WHERE userId=? AND novelId=? AND createdAt > DATE_SUB(NOW(), INTERVAL 30 DAY) LIMIT 1",
         [req.user.id, novelId]
       );
       const alreadyPurchased = existing.length > 0;
-
-      // Count chapters
-      const [chCount]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters WHERE novelId=?", [novelId]);
-
+      const [chCount]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters WHERE novel_id=?", [novelId]);
       res.json({
-        alreadyPurchased,
-        isVip,
-        vipDownloadsUsed: u.vipEbookDownloads || 0,
-        vipDownloadsLimit: u.vipEbookLimit || 10,
-        coins: u.coins || 0,
-        coinCost,
-        chapterCount: chCount[0]?.c || 0,
+        alreadyPurchased, isVip,
+        vipDownloadsUsed: u.vipEbookDownloads || 0, vipDownloadsLimit: u.vipEbookLimit || 10,
+        coins: u.coins || 0, coinCost, chapterCount: chCount[0]?.c || 0,
       });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -672,7 +634,7 @@ async function startServer() {
   app.get("/api/member/download-history", authMiddleware(), async (req: any, res) => {
     try {
       const [rows] = await pool.execute(
-        `SELECT ed.*, n.title, n.coverUrl FROM ebook_downloads ed JOIN novels n ON ed.novelId = n.id WHERE ed.userId=? ORDER BY ed.createdAt DESC LIMIT 50`,
+        `SELECT ed.*, n.title, n.cover_url as coverUrl FROM ebook_downloads ed JOIN novels n ON ed.novelId = n.id WHERE ed.userId=? ORDER BY ed.createdAt DESC LIMIT 50`,
         [req.user.id]
       );
       res.json(rows);
@@ -685,10 +647,10 @@ async function startServer() {
       const [users]: any = await pool.execute("SELECT COUNT(*) as c FROM users");
       const [novels]: any = await pool.execute("SELECT COUNT(*) as c FROM novels");
       const [chapters]: any = await pool.execute("SELECT COUNT(*) as c FROM chapters");
-      const [views]: any = await pool.execute("SELECT SUM(viewCount) as c FROM novels");
+      const [views]: any = await pool.execute("SELECT SUM(view_count) as c FROM novels");
       const [recentUsers]: any = await pool.execute("SELECT COUNT(*) as c FROM users WHERE createdAt > DATE_SUB(NOW(), INTERVAL 7 DAY)");
-      const [topNovels]: any = await pool.execute("SELECT id, title, viewCount, likeCount FROM novels ORDER BY viewCount DESC LIMIT 10");
-      const [categoryStats]: any = await pool.execute("SELECT category, COUNT(*) as count, SUM(viewCount) as views FROM novels GROUP BY category ORDER BY views DESC");
+      const [topNovels]: any = await pool.execute("SELECT id, title, view_count as viewCount, like_count as likeCount FROM novels ORDER BY view_count DESC LIMIT 10");
+      const [categoryStats]: any = await pool.execute("SELECT category, COUNT(*) as count, SUM(view_count) as views FROM novels GROUP BY category ORDER BY views DESC");
       res.json({ totalUsers: users[0].c, totalNovels: novels[0].c, totalChapters: chapters[0].c, totalViews: views[0].c || 0, recentUsers: recentUsers[0].c, topNovels, categoryStats });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -700,7 +662,7 @@ async function startServer() {
       const seoTitle = `${title} อ่านฟรี จบครบทุกตอน | NiYAIFREE`;
       const seoDesc = `อ่าน ${title} ฟรี สนุก ครบทุกตอน อัปเดตล่าสุด`;
       const [result]: any = await pool.execute(
-        "INSERT INTO novels (title, slug, author, category, description, coverUrl, ageRating, status, seoTitle, seoDescription) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO novels (title, slug, author, category, description, cover_url, age_rating, status, seo_title, seo_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [title, slug, author || "NiYAIFREE", category, description || "", coverUrl || "", ageRating || "ทั่วไป", status || "draft", seoTitle, seoDesc]
       );
       await logAudit(req.user.id, "create_novel", "novel", result.insertId, { title, category });
@@ -711,11 +673,17 @@ async function startServer() {
   app.put("/api/admin/novels/:id", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const fields = req.body;
+      // Map camelCase from frontend to snake_case in DB
+      const fieldMap: any = { coverUrl: "cover_url", ageRating: "age_rating", isFeatured: "is_featured" };
       const allowed = ["title", "category", "description", "coverUrl", "ageRating", "author", "status", "isFeatured"];
       const sets: string[] = [];
       const vals: any[] = [];
       for (const k of allowed) {
-        if (fields[k] !== undefined) { sets.push(`${k}=?`); vals.push(fields[k]); }
+        if (fields[k] !== undefined) {
+          const dbCol = fieldMap[k] || k;
+          sets.push(`${dbCol}=?`);
+          vals.push(fields[k]);
+        }
       }
       if (sets.length === 0) return res.status(400).json({ error: "No fields" });
       vals.push(req.params.id);
@@ -726,6 +694,7 @@ async function startServer() {
 
   app.delete("/api/admin/novels/:id", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
+      await pool.execute("DELETE FROM chapters WHERE novel_id=?", [req.params.id]);
       await pool.execute("DELETE FROM novels WHERE id=?", [req.params.id]);
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -736,10 +705,10 @@ async function startServer() {
       const { novelId, chapterNumber, title, content } = req.body;
       const wordCount = content.replace(/\s+/g, "").length;
       await pool.execute(
-        "INSERT INTO chapters (novelId, chapterNumber, title, content, wordCount) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO chapters (novel_id, chapter_number, title, content, word_count) VALUES (?, ?, ?, ?, ?)",
         [novelId, chapterNumber, title, content, wordCount]
       );
-      await pool.execute("UPDATE novels SET totalChapters = (SELECT COUNT(*) FROM chapters WHERE novelId=?), totalWords = (SELECT COALESCE(SUM(wordCount),0) FROM chapters WHERE novelId=?) WHERE id=?", [novelId, novelId, novelId]);
+      await pool.execute("UPDATE novels SET total_chapters = (SELECT COUNT(*) FROM chapters WHERE novel_id=?), word_count = (SELECT COALESCE(SUM(word_count),0) FROM chapters WHERE novel_id=?) WHERE id=?", [novelId, novelId, novelId]);
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -751,7 +720,7 @@ async function startServer() {
       const sets = [];
       const vals: any[] = [];
       if (title) { sets.push("title=?"); vals.push(title); }
-      if (content) { sets.push("content=?"); vals.push(content); if (wordCount) { sets.push("wordCount=?"); vals.push(wordCount); } }
+      if (content) { sets.push("content=?"); vals.push(content); if (wordCount) { sets.push("word_count=?"); vals.push(wordCount); } }
       vals.push(req.params.id);
       await pool.execute(`UPDATE chapters SET ${sets.join(",")} WHERE id=?`, vals);
       res.json({ success: true });
@@ -760,10 +729,10 @@ async function startServer() {
 
   app.delete("/api/admin/chapters/:id", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
-      const [ch]: any = await pool.execute("SELECT novelId FROM chapters WHERE id=?", [req.params.id]);
+      const [ch]: any = await pool.execute("SELECT novel_id FROM chapters WHERE id=?", [req.params.id]);
       await pool.execute("DELETE FROM chapters WHERE id=?", [req.params.id]);
       if (ch.length > 0) {
-        await pool.execute("UPDATE novels SET totalChapters = (SELECT COUNT(*) FROM chapters WHERE novelId=?), totalWords = (SELECT COALESCE(SUM(wordCount),0) FROM chapters WHERE novelId=?) WHERE id=?", [ch[0].novelId, ch[0].novelId, ch[0].novelId]);
+        await pool.execute("UPDATE novels SET total_chapters = (SELECT COUNT(*) FROM chapters WHERE novel_id=?), word_count = (SELECT COALESCE(SUM(word_count),0) FROM chapters WHERE novel_id=?) WHERE id=?", [ch[0].novel_id, ch[0].novel_id, ch[0].novel_id]);
       }
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -811,18 +780,20 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // Admin: API Keys
+  // Admin: API Keys (snake_case: api_key, status, total_requests, last_used_at)
   app.get("/api/admin/api-keys", authMiddleware(["admin", "ceo"]), async (_req, res) => {
     try {
-      const [rows] = await pool.execute("SELECT * FROM api_keys ORDER BY id");
-      res.json(rows);
+      const [rows]: any = await pool.execute("SELECT id, api_key as keyValue, provider, model, status, total_requests as usageCount, last_used_at as lastUsedAt, created_at as createdAt FROM api_keys ORDER BY id");
+      // Map status to isActive for frontend compatibility
+      const mapped = rows.map((r: any) => ({ ...r, isActive: r.status === 'active' ? 1 : 0 }));
+      res.json(mapped);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.post("/api/admin/api-keys", authMiddleware(["admin", "ceo"]), async (req, res) => {
     try {
       const { keyValue, provider } = req.body;
-      await pool.execute("INSERT INTO api_keys (keyValue, provider) VALUES (?, ?)", [keyValue, provider || "gemini"]);
+      await pool.execute("INSERT INTO api_keys (api_key, provider) VALUES (?, ?)", [keyValue, provider || "gemini"]);
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -837,7 +808,8 @@ async function startServer() {
   app.put("/api/admin/api-keys/:id", authMiddleware(["admin", "ceo"]), async (req, res) => {
     try {
       const { isActive } = req.body;
-      await pool.execute("UPDATE api_keys SET isActive=? WHERE id=?", [isActive, req.params.id]);
+      const newStatus = isActive ? 'active' : 'inactive';
+      await pool.execute("UPDATE api_keys SET status=? WHERE id=?", [newStatus, req.params.id]);
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -864,7 +836,7 @@ async function startServer() {
   app.post("/api/admin/generate-novel", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { category, numNovels, numChapters, wordsPerChapter, tone } = req.body;
-      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE isActive=1 AND provider='gemini'");
+      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE status='active' AND provider='gemini'");
       if (keys.length === 0) return res.status(400).json({ error: "ไม่มี API Key ที่ใช้งานได้" });
       const totalCalls = Math.ceil((numNovels * numChapters) / 3);
       const [job]: any = await pool.execute(
@@ -879,7 +851,7 @@ async function startServer() {
   app.post("/api/admin/ai-generate-chapters", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { novelId, numCalls, startChapter } = req.body;
-      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE isActive=1 AND provider='gemini' ORDER BY usageCount ASC");
+      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE status='active' AND provider='gemini' ORDER BY total_requests ASC");
       if (keys.length === 0) return res.status(400).json({ error: "ไม่มี API Key" });
       const [novel]: any = await pool.execute("SELECT * FROM novels WHERE id=?", [novelId]);
       if (novel.length === 0) return res.status(404).json({ error: "ไม่พบนิยาย" });
@@ -894,7 +866,7 @@ async function startServer() {
       const wordsMax = config.words_per_chapter_max || "1500";
 
       const results: any[] = [];
-      let currentChapter = startChapter || (novel[0].totalChapters + 1);
+      let currentChapter = startChapter || (novel[0].total_chapters + 1);
 
       for (let call = 0; call < (numCalls || 1); call++) {
         const key = keys[call % keys.length];
@@ -907,7 +879,7 @@ async function startServer() {
 
         try {
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key.keyValue}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key.api_key}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -922,20 +894,20 @@ async function startServer() {
             for (const ch of chapters) {
               const wordCount = ch.content.replace(/\s+/g, "").length;
               await pool.execute(
-                "INSERT INTO chapters (novelId, chapterNumber, title, content, wordCount) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO chapters (novel_id, chapter_number, title, content, word_count) VALUES (?, ?, ?, ?, ?)",
                 [novelId, currentChapter, ch.title, ch.content, wordCount]
               );
               results.push({ chapterNumber: currentChapter, title: ch.title, wordCount });
               currentChapter++;
             }
           }
-          await pool.execute("UPDATE api_keys SET usageCount = usageCount + 1, lastUsedAt = NOW() WHERE id=?", [key.id]);
+          await pool.execute("UPDATE api_keys SET total_requests = total_requests + 1, last_used_at = NOW() WHERE id=?", [key.id]);
         } catch (err: any) {
           results.push({ error: err.message, call });
         }
       }
 
-      await pool.execute("UPDATE novels SET totalChapters = (SELECT COUNT(*) FROM chapters WHERE novelId=?), totalWords = (SELECT COALESCE(SUM(wordCount),0) FROM chapters WHERE novelId=?), status='writing' WHERE id=?", [novelId, novelId, novelId]);
+      await pool.execute("UPDATE novels SET total_chapters = (SELECT COUNT(*) FROM chapters WHERE novel_id=?), word_count = (SELECT COALESCE(SUM(word_count),0) FROM chapters WHERE novel_id=?), status='writing' WHERE id=?", [novelId, novelId, novelId]);
       res.json({ success: true, results, chaptersCreated: results.filter(r => !r.error).length });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -944,12 +916,12 @@ async function startServer() {
   app.post("/api/admin/proofread", authMiddleware(["admin", "ceo"]), async (req: any, res) => {
     try {
       const { novelId, chapterId } = req.body;
-      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE isActive=1 AND provider='gemini' ORDER BY usageCount ASC LIMIT 1");
+      const [keys]: any = await pool.execute("SELECT * FROM api_keys WHERE status='active' AND provider='gemini' ORDER BY total_requests ASC LIMIT 1");
       if (keys.length === 0) return res.status(400).json({ error: "ไม่มี API Key" });
 
-      let sql = "SELECT * FROM chapters WHERE qualityChecked=0";
+      let sql = "SELECT * FROM chapters WHERE quality_checked=0";
       const params: any[] = [];
-      if (novelId) { sql += " AND novelId=?"; params.push(novelId); }
+      if (novelId) { sql += " AND novel_id=?"; params.push(novelId); }
       if (chapterId) { sql += " AND id=?"; params.push(chapterId); }
       sql += " LIMIT 20";
       const [chapters]: any = await pool.execute(sql, params);
@@ -970,7 +942,7 @@ async function startServer() {
 
         try {
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key.keyValue}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key.api_key}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -983,13 +955,13 @@ async function startServer() {
           if (jsonMatch) {
             const result = JSON.parse(jsonMatch[0]);
             if (result.score >= 90 && result.correctedContent) {
-              await pool.execute("UPDATE chapters SET content=?, qualityChecked=1, qualityScore=? WHERE id=?", [result.correctedContent, result.score, ch.id]);
+              await pool.execute("UPDATE chapters SET content=?, quality_checked=1, quality_score=? WHERE id=?", [result.correctedContent, result.score, ch.id]);
             } else {
-              await pool.execute("UPDATE chapters SET qualityScore=? WHERE id=?", [result.score, ch.id]);
+              await pool.execute("UPDATE chapters SET quality_score=? WHERE id=?", [result.score, ch.id]);
             }
             results.push({ chapterId: ch.id, score: result.score, issues: result.issues?.length || 0 });
           }
-          await pool.execute("UPDATE api_keys SET usageCount = usageCount + 1, lastUsedAt = NOW() WHERE id=?", [key.id]);
+          await pool.execute("UPDATE api_keys SET total_requests = total_requests + 1, last_used_at = NOW() WHERE id=?", [key.id]);
         } catch (err: any) {
           results.push({ chapterId: ch.id, error: err.message });
         }
@@ -1006,27 +978,8 @@ async function startServer() {
   });
 
   // ============ ANALYTICS TRACKING ============
-  // Create page_views table if not exists
-  try {
-    await pool.execute(`CREATE TABLE IF NOT EXISTS page_views (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      sessionId VARCHAR(64),
-      ip VARCHAR(45),
-      country VARCHAR(100) DEFAULT '',
-      city VARCHAR(100) DEFAULT '',
-      page VARCHAR(500),
-      referrer VARCHAR(500) DEFAULT '',
-      userAgent VARCHAR(500) DEFAULT '',
-      novelId INT DEFAULT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_created (createdAt),
-      INDEX idx_page (page),
-      INDEX idx_session (sessionId),
-      INDEX idx_novel (novelId)
-    )`);
-  } catch (e) { console.log('page_views table may already exist'); }
-
   // Track pageview (public, no auth required)
+  // page_views uses snake_case: session_id, page_path, page_title, novel_id, user_agent, created_at
   app.post("/api/analytics/track", async (req, res) => {
     try {
       const { page, referrer, sessionId, novelId } = req.body;
@@ -1034,7 +987,6 @@ async function startServer() {
       const realIp = typeof ip === 'string' ? ip.split(',')[0].trim() : (Array.isArray(ip) ? ip[0] : '');
       const userAgent = req.headers['user-agent'] || '';
 
-      // Get country from IP using free API (best effort)
       let country = '';
       let city = '';
       try {
@@ -1047,7 +999,7 @@ async function startServer() {
       } catch { /* ignore geo errors */ }
 
       await pool.execute(
-        'INSERT INTO page_views (sessionId, ip, country, city, page, referrer, userAgent, novelId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO page_views (session_id, ip, country, city, page_path, referrer, user_agent, novel_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [sessionId || '', realIp, country, city, page || '/', referrer || '', userAgent.substring(0, 500), novelId || null]
       );
       res.json({ success: true });
@@ -1059,7 +1011,7 @@ async function startServer() {
     try {
       const [novels]: any = await pool.execute('SELECT COUNT(*) as c FROM novels');
       const [users]: any = await pool.execute('SELECT COUNT(*) as c FROM users');
-      const [views]: any = await pool.execute('SELECT SUM(viewCount) as c FROM novels');
+      const [views]: any = await pool.execute('SELECT SUM(view_count) as c FROM novels');
       const [chapters]: any = await pool.execute('SELECT COUNT(*) as c FROM chapters');
       res.json({
         totalNovels: novels[0].c || 0,
@@ -1076,50 +1028,40 @@ async function startServer() {
       const { days } = req.query;
       const daysNum = parseInt(days as string) || 30;
 
-      // Total pageviews
       const [totalPV]: any = await pool.execute(
-        'SELECT COUNT(*) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY)', [daysNum]
+        'SELECT COUNT(*) as total FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)', [daysNum]
       );
-      // Unique visitors (by sessionId)
       const [uniqueVisitors]: any = await pool.execute(
-        'SELECT COUNT(DISTINCT sessionId) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sessionId != ""', [daysNum]
+        'SELECT COUNT(DISTINCT session_id) as total FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) AND session_id != ""', [daysNum]
       );
-      // Unique IPs
       const [uniqueIPs]: any = await pool.execute(
-        'SELECT COUNT(DISTINCT ip) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND ip != ""', [daysNum]
+        'SELECT COUNT(DISTINCT ip) as total FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) AND ip != ""', [daysNum]
       );
-      // Pageviews by day
       const [pvByDay]: any = await pool.execute(
-        'SELECT DATE(createdAt) as date, COUNT(*) as views, COUNT(DISTINCT sessionId) as visitors FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(createdAt) ORDER BY date', [daysNum]
+        'SELECT DATE(created_at) as date, COUNT(*) as views, COUNT(DISTINCT session_id) as visitors FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(created_at) ORDER BY date', [daysNum]
       );
-      // Top pages
       const [topPages]: any = await pool.execute(
-        'SELECT page, COUNT(*) as views, COUNT(DISTINCT sessionId) as visitors FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY page ORDER BY views DESC LIMIT 20', [daysNum]
+        'SELECT page_path as page, COUNT(*) as views, COUNT(DISTINCT session_id) as visitors FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY page_path ORDER BY views DESC LIMIT 20', [daysNum]
       );
-      // Top countries
       const [topCountries]: any = await pool.execute(
-        'SELECT country, COUNT(*) as views, COUNT(DISTINCT ip) as uniqueIPs FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND country != "" GROUP BY country ORDER BY views DESC LIMIT 20', [daysNum]
+        'SELECT country, COUNT(*) as views, COUNT(DISTINCT ip) as uniqueIPs FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) AND country != "" GROUP BY country ORDER BY views DESC LIMIT 20', [daysNum]
       );
-      // Top novels (by novelId in page_views)
       const [topNovels]: any = await pool.execute(
-        `SELECT pv.novelId, n.title, n.category, n.coverUrl, COUNT(*) as views, COUNT(DISTINCT pv.sessionId) as visitors
+        `SELECT pv.novel_id as novelId, n.title, n.category, n.cover_url as coverUrl, COUNT(*) as views, COUNT(DISTINCT pv.session_id) as visitors
          FROM page_views pv
-         LEFT JOIN novels n ON pv.novelId = n.id
-         WHERE pv.createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND pv.novelId IS NOT NULL
-         GROUP BY pv.novelId, n.title, n.category, n.coverUrl
+         LEFT JOIN novels n ON pv.novel_id = n.id
+         WHERE pv.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) AND pv.novel_id IS NOT NULL
+         GROUP BY pv.novel_id, n.title, n.category, n.cover_url
          ORDER BY views DESC LIMIT 100`, [daysNum]
       );
-      // Top novels by viewCount (from novels table)
       const [topNovelsByViewCount]: any = await pool.execute(
-        'SELECT id, title, category, coverUrl, viewCount, likeCount FROM novels ORDER BY viewCount DESC LIMIT 100'
+        'SELECT id, title, category, cover_url as coverUrl, view_count as viewCount, like_count as likeCount FROM novels ORDER BY view_count DESC LIMIT 100'
       );
-      // Hourly distribution
       const [hourlyDist]: any = await pool.execute(
-        'SELECT HOUR(createdAt) as hour, COUNT(*) as views FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY HOUR(createdAt) ORDER BY hour', [daysNum]
+        'SELECT HOUR(created_at) as hour, COUNT(*) as views FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY HOUR(created_at) ORDER BY hour', [daysNum]
       );
-      // Recent pageviews
       const [recentPV]: any = await pool.execute(
-        'SELECT page, ip, country, city, createdAt, userAgent FROM page_views ORDER BY createdAt DESC LIMIT 50'
+        'SELECT page_path as page, ip, country, city, created_at as createdAt, user_agent as userAgent FROM page_views ORDER BY created_at DESC LIMIT 50'
       );
 
       res.json({
@@ -1141,42 +1083,29 @@ async function startServer() {
   // ============ CONTENT STATS (PUBLIC) ============
   app.get("/api/analytics/content-stats", async (_req, res) => {
     try {
-      // Total novels
       const [totalNovels]: any = await pool.execute('SELECT COUNT(*) as total FROM novels');
-      // Total chapters
       const [totalChapters]: any = await pool.execute('SELECT COUNT(*) as total FROM chapters');
-      // Total word count (sum of all chapter wordCounts)
-      const [totalWords]: any = await pool.execute('SELECT COALESCE(SUM(wordCount), 0) as total FROM chapters');
-      // Total characters (sum of CHAR_LENGTH of content)
+      const [totalWords]: any = await pool.execute('SELECT COALESCE(SUM(word_count), 0) as total FROM novels');
       const [totalChars]: any = await pool.execute('SELECT COALESCE(SUM(CHAR_LENGTH(content)), 0) as total FROM chapters');
-      // Categories breakdown
       const [categories]: any = await pool.execute('SELECT category, COUNT(*) as count FROM novels GROUP BY category ORDER BY count DESC');
-      // Novels by status
       const [byStatus]: any = await pool.execute('SELECT status, COUNT(*) as count FROM novels GROUP BY status ORDER BY count DESC');
-      // Novels created per day (last 30 days)
       const [novelsByDay]: any = await pool.execute(
-        `SELECT DATE(createdAt) as date, COUNT(*) as count FROM novels 
-         WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
-         GROUP BY DATE(createdAt) ORDER BY date`
+        `SELECT DATE(created_at) as date, COUNT(*) as count FROM novels 
+         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+         GROUP BY DATE(created_at) ORDER BY date`
       );
-      // Novels updated per day (last 30 days)
       const [novelsUpdatedByDay]: any = await pool.execute(
-        `SELECT DATE(updatedAt) as date, COUNT(*) as count FROM novels 
-         WHERE updatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
-         GROUP BY DATE(updatedAt) ORDER BY date`
+        `SELECT DATE(updated_at) as date, COUNT(*) as count FROM novels 
+         WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+         GROUP BY DATE(updated_at) ORDER BY date`
       );
-      // Total members
       const [totalMembers]: any = await pool.execute('SELECT COUNT(*) as total FROM users');
-      // Newest novel
-      const [newestNovel]: any = await pool.execute('SELECT title, category, createdAt FROM novels ORDER BY createdAt DESC LIMIT 1');
-      // Oldest novel
-      const [oldestNovel]: any = await pool.execute('SELECT title, category, createdAt FROM novels ORDER BY createdAt ASC LIMIT 1');
-      // Average chapters per novel
+      const [newestNovel]: any = await pool.execute('SELECT title, category, created_at as createdAt FROM novels ORDER BY created_at DESC LIMIT 1');
+      const [oldestNovel]: any = await pool.execute('SELECT title, category, created_at as createdAt FROM novels ORDER BY created_at ASC LIMIT 1');
       const [avgChapters]: any = await pool.execute(
-        'SELECT AVG(chapterCount) as avg FROM (SELECT novelId, COUNT(*) as chapterCount FROM chapters GROUP BY novelId) as sub'
+        'SELECT AVG(chapterCount) as avg FROM (SELECT novel_id, COUNT(*) as chapterCount FROM chapters GROUP BY novel_id) as sub'
       );
-      // Average word count per chapter
-      const [avgWords]: any = await pool.execute('SELECT AVG(wordCount) as avg FROM chapters WHERE wordCount > 0');
+      const [avgWords]: any = await pool.execute('SELECT AVG(word_count) as avg FROM chapters WHERE word_count > 0');
 
       res.json({
         totalNovels: totalNovels[0].total || 0,
@@ -1229,9 +1158,9 @@ async function startServer() {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
-  const port = process.env.PORT || 3001;
-  server.listen(port, () => {
-    console.log(`NiYAIFREE Server running on http://localhost:${port}/`);
+  const port = parseInt(process.env.PORT || '3001', 10);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`NiYAIFREE Server running on http://0.0.0.0:${port}/`);
   });
 }
 
