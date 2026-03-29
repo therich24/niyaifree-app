@@ -1138,6 +1138,64 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ============ CONTENT STATS (PUBLIC) ============
+  app.get("/api/analytics/content-stats", async (_req, res) => {
+    try {
+      // Total novels
+      const [totalNovels]: any = await pool.execute('SELECT COUNT(*) as total FROM novels');
+      // Total chapters
+      const [totalChapters]: any = await pool.execute('SELECT COUNT(*) as total FROM chapters');
+      // Total word count (sum of all chapter wordCounts)
+      const [totalWords]: any = await pool.execute('SELECT COALESCE(SUM(wordCount), 0) as total FROM chapters');
+      // Total characters (sum of CHAR_LENGTH of content)
+      const [totalChars]: any = await pool.execute('SELECT COALESCE(SUM(CHAR_LENGTH(content)), 0) as total FROM chapters');
+      // Categories breakdown
+      const [categories]: any = await pool.execute('SELECT category, COUNT(*) as count FROM novels GROUP BY category ORDER BY count DESC');
+      // Novels by status
+      const [byStatus]: any = await pool.execute('SELECT status, COUNT(*) as count FROM novels GROUP BY status ORDER BY count DESC');
+      // Novels created per day (last 30 days)
+      const [novelsByDay]: any = await pool.execute(
+        `SELECT DATE(createdAt) as date, COUNT(*) as count FROM novels 
+         WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+         GROUP BY DATE(createdAt) ORDER BY date`
+      );
+      // Novels updated per day (last 30 days)
+      const [novelsUpdatedByDay]: any = await pool.execute(
+        `SELECT DATE(updatedAt) as date, COUNT(*) as count FROM novels 
+         WHERE updatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+         GROUP BY DATE(updatedAt) ORDER BY date`
+      );
+      // Total members
+      const [totalMembers]: any = await pool.execute('SELECT COUNT(*) as total FROM users');
+      // Newest novel
+      const [newestNovel]: any = await pool.execute('SELECT title, category, createdAt FROM novels ORDER BY createdAt DESC LIMIT 1');
+      // Oldest novel
+      const [oldestNovel]: any = await pool.execute('SELECT title, category, createdAt FROM novels ORDER BY createdAt ASC LIMIT 1');
+      // Average chapters per novel
+      const [avgChapters]: any = await pool.execute(
+        'SELECT AVG(chapterCount) as avg FROM (SELECT novelId, COUNT(*) as chapterCount FROM chapters GROUP BY novelId) as sub'
+      );
+      // Average word count per chapter
+      const [avgWords]: any = await pool.execute('SELECT AVG(wordCount) as avg FROM chapters WHERE wordCount > 0');
+
+      res.json({
+        totalNovels: totalNovels[0].total || 0,
+        totalChapters: totalChapters[0].total || 0,
+        totalWordCount: totalWords[0].total || 0,
+        totalCharacters: totalChars[0].total || 0,
+        totalMembers: totalMembers[0].total || 0,
+        categories,
+        byStatus,
+        novelsByDay,
+        novelsUpdatedByDay,
+        newestNovel: newestNovel[0] || null,
+        oldestNovel: oldestNovel[0] || null,
+        avgChaptersPerNovel: Math.round((avgChapters[0]?.avg || 0) * 10) / 10,
+        avgWordCountPerChapter: Math.round(avgWords[0]?.avg || 0),
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // ============ ADS.TXT PUBLIC ROUTE ============
   app.get("/ads.txt", async (_req, res) => {
     try {

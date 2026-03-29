@@ -103,6 +103,7 @@ export const api = {
   trackPageview: (body: any) => request("/analytics/track", { method: "POST", body: JSON.stringify(body) }),
   getPublicStats: () => request("/public/stats"),
   getAnalyticsDashboard: (days?: number) => request(`/analytics/dashboard?days=${days || 30}`),
+  getAnalyticsContentStats: () => request("/analytics/content-stats"),
 
   // CEO
   ceoLogin: (body: any) => request("/ceo/login", { method: "POST", body: JSON.stringify(body) }),

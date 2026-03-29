@@ -9,8 +9,25 @@ import { api } from "@/lib/api";
 import {
   BarChart3, Eye, Users, Globe, TrendingUp, Clock, BookOpen,
   ArrowLeft, RefreshCw, Monitor, Crown,
-  Activity, MapPin, Layers, ArrowUpRight, ArrowDownRight
+  Activity, MapPin, Layers, ArrowUpRight, ArrowDownRight,
+  FileText, Hash, Type, FolderOpen, Calendar, PenTool
 } from "lucide-react";
+
+interface ContentStats {
+  totalNovels: number;
+  totalChapters: number;
+  totalWordCount: number;
+  totalCharacters: number;
+  totalMembers: number;
+  categories: { category: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  novelsByDay: { date: string; count: number }[];
+  novelsUpdatedByDay: { date: string; count: number }[];
+  newestNovel: { title: string; category: string; createdAt: string } | null;
+  oldestNovel: { title: string; category: string; createdAt: string } | null;
+  avgChaptersPerNovel: number;
+  avgWordCountPerChapter: number;
+}
 
 interface DashboardData {
   totalPageviews: number;
@@ -82,7 +99,9 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRange, setSelectedRange] = useState(4); // index into TIME_RANGES, default 30 days
-  const [activeTab, setActiveTab] = useState<"overview" | "pages" | "countries" | "novels" | "realtime">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pages" | "countries" | "novels" | "realtime" | "content">("overview");
+  const [contentStats, setContentStats] = useState<ContentStats | null>(null);
+  const [contentLoading, setContentLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const days = TIME_RANGES[selectedRange].value;
@@ -102,6 +121,21 @@ export default function Analytics() {
   }
 
   useEffect(() => { loadData(); }, [selectedRange]);
+
+  useEffect(() => {
+    async function loadContentStats() {
+      try {
+        setContentLoading(true);
+        const result = await api.getAnalyticsContentStats();
+        setContentStats(result);
+      } catch (e) {
+        console.error("Failed to load content stats", e);
+      } finally {
+        setContentLoading(false);
+      }
+    }
+    loadContentStats();
+  }, []);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -151,6 +185,7 @@ export default function Analytics() {
     { id: "pages" as const, label: "หน้าเพจ", icon: Layers },
     { id: "countries" as const, label: "ประเทศ", icon: Globe },
     { id: "novels" as const, label: "นิยายยอดนิยม", icon: BookOpen },
+    { id: "content" as const, label: "สถิติเนื้อหา", icon: FileText },
     { id: "realtime" as const, label: "เรียลไทม์", icon: Activity },
   ];
 
@@ -613,6 +648,206 @@ export default function Analytics() {
                     </table>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "content" && (
+              <div className="space-y-6">
+                {contentLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+                  </div>
+                ) : contentStats ? (
+                  <>
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: "นิยายทั้งหมด", value: formatNum(contentStats.totalNovels), sub: "เรื่อง", icon: BookOpen, bg: "bg-blue-50", text: "text-blue-600" },
+                        { label: "ตอนทั้งหมด", value: formatNum(contentStats.totalChapters), sub: "ตอน", icon: FileText, bg: "bg-emerald-50", text: "text-emerald-600" },
+                        { label: "ตัวอักษรทั้งหมด", value: formatNum(contentStats.totalCharacters), sub: "ตัวอักษร", icon: Type, bg: "bg-violet-50", text: "text-violet-600" },
+                        { label: "สมาชิกทั้งหมด", value: formatNum(contentStats.totalMembers), sub: "คน", icon: Users, bg: "bg-amber-50", text: "text-amber-600" },
+                      ].map(c => (
+                        <div key={c.label} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                          <div className={`w-10 h-10 ${c.bg} rounded-xl flex items-center justify-center mb-3`}>
+                            <c.icon className={`w-5 h-5 ${c.text}`} />
+                          </div>
+                          <p className="text-2xl font-bold font-[Kanit] text-slate-900">{c.value}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{c.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Extra Stats Row */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Hash className="w-4 h-4 text-indigo-500" />
+                          <span className="text-xs font-semibold text-slate-500">คำทั้งหมด (Word Count)</span>
+                        </div>
+                        <p className="text-xl font-bold font-[Kanit] text-indigo-600">{formatNum(contentStats.totalWordCount)}</p>
+                        <p className="text-[10px] text-slate-400">นับจากทุกตอน</p>
+                      </div>
+                      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <PenTool className="w-4 h-4 text-pink-500" />
+                          <span className="text-xs font-semibold text-slate-500">เฉลี่ยต่อตอน</span>
+                        </div>
+                        <p className="text-xl font-bold font-[Kanit] text-pink-600">{formatNum(contentStats.avgWordCountPerChapter)}</p>
+                        <p className="text-[10px] text-slate-400">ตัวอักษร/ตอน</p>
+                      </div>
+                      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FolderOpen className="w-4 h-4 text-teal-500" />
+                          <span className="text-xs font-semibold text-slate-500">จำนวนหมวดหมู่</span>
+                        </div>
+                        <p className="text-xl font-bold font-[Kanit] text-teal-600">{contentStats.categories?.length || 0}</p>
+                        <p className="text-[10px] text-slate-400">หมวด</p>
+                      </div>
+                      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-4 h-4 text-orange-500" />
+                          <span className="text-xs font-semibold text-slate-500">เฉลี่ยตอน/เรื่อง</span>
+                        </div>
+                        <p className="text-xl font-bold font-[Kanit] text-orange-600">{contentStats.avgChaptersPerNovel}</p>
+                        <p className="text-[10px] text-slate-400">ตอน/เรื่อง</p>
+                      </div>
+                    </div>
+
+                    {/* Categories Breakdown */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-slate-100">
+                        <h3 className="font-bold font-[Kanit] text-slate-900 flex items-center gap-2">
+                          <FolderOpen className="w-5 h-5 text-teal-500" />
+                          หมวดหมู่นิยาย
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">จำนวนเรื่องในแต่ละหมวด</p>
+                      </div>
+                      <div className="p-6">
+                        {contentStats.categories?.length > 0 ? (
+                          <div className="space-y-3">
+                            {contentStats.categories.map((cat, i) => {
+                              const maxCount = Math.max(...contentStats.categories.map(c => c.count), 1);
+                              const pct = ((cat.count / contentStats.totalNovels) * 100).toFixed(1);
+                              const colors = ["bg-blue-500", "bg-emerald-500", "bg-violet-500", "bg-amber-500", "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-orange-500"];
+                              return (
+                                <div key={i} className="flex items-center gap-4">
+                                  <span className="text-sm font-medium text-slate-700 w-28 shrink-0 truncate">{cat.category}</span>
+                                  <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${colors[i % colors.length]} transition-all duration-500 flex items-center justify-end pr-2`}
+                                      style={{ width: `${(cat.count / maxCount) * 100}%`, minWidth: "40px" }}
+                                    >
+                                      <span className="text-[10px] font-bold text-white">{cat.count}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-slate-400 w-12 text-right">{pct}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400 text-center py-8">ยังไม่มีข้อมูล</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status + Timeline */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Novel Status */}
+                      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <h3 className="font-bold font-[Kanit] text-slate-900 flex items-center gap-2 mb-4">
+                          <BarChart3 className="w-5 h-5 text-blue-500" />
+                          สถานะนิยาย
+                        </h3>
+                        <div className="space-y-3">
+                          {contentStats.byStatus?.map((s, i) => {
+                            const statusLabels: Record<string, string> = {
+                              completed: "จบแล้ว",
+                              ongoing: "กำลังเขียน",
+                              draft: "แบบร่าง",
+                            };
+                            const statusColors: Record<string, string> = {
+                              completed: "bg-emerald-100 text-emerald-700",
+                              ongoing: "bg-blue-100 text-blue-700",
+                              draft: "bg-slate-100 text-slate-700",
+                            };
+                            return (
+                              <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[s.status] || "bg-slate-100 text-slate-600"}`}>
+                                  {statusLabels[s.status] || s.status}
+                                </span>
+                                <span className="text-lg font-bold font-[Kanit] text-slate-900">{s.count} <span className="text-xs font-normal text-slate-400">เรื่อง</span></span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <h3 className="font-bold font-[Kanit] text-slate-900 flex items-center gap-2 mb-4">
+                          <Calendar className="w-5 h-5 text-violet-500" />
+                          ไทม์ไลน์
+                        </h3>
+                        <div className="space-y-4">
+                          {contentStats.newestNovel && (
+                            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                              <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider mb-1">นิยายล่าสุด</p>
+                              <p className="text-sm font-medium text-slate-900">{contentStats.newestNovel.title}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {contentStats.newestNovel.category} — {new Date(contentStats.newestNovel.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                              </p>
+                            </div>
+                          )}
+                          {contentStats.oldestNovel && (
+                            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                              <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider mb-1">นิยายแรกสุด</p>
+                              <p className="text-sm font-medium text-slate-900">{contentStats.oldestNovel.title}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {contentStats.oldestNovel.category} — {new Date(contentStats.oldestNovel.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Novels created per day chart */}
+                        {contentStats.novelsByDay?.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-xs font-semibold text-slate-500 mb-2">นิยายเข้าใหม่ (30 วันล่าสุด)</p>
+                            <div className="overflow-x-auto">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="text-[10px] text-slate-400 uppercase">
+                                    <th className="text-left py-1 pr-2">วันที่</th>
+                                    <th className="text-right py-1">เข้าใหม่</th>
+                                    <th className="text-right py-1 pl-2">อัปเดต</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {contentStats.novelsByDay.map((d, i) => {
+                                    const updated = contentStats.novelsUpdatedByDay?.find(u => u.date?.slice(0, 10) === d.date?.slice(0, 10));
+                                    return (
+                                      <tr key={i} className="hover:bg-blue-50/30">
+                                        <td className="py-1.5 pr-2 text-xs text-slate-600">{d.date?.slice(5)}</td>
+                                        <td className="py-1.5 text-right text-xs font-bold text-emerald-600">+{d.count}</td>
+                                        <td className="py-1.5 pl-2 text-right text-xs text-blue-500">{updated?.count || 0}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-20 text-slate-400">
+                    <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">ไม่สามารถโหลดข้อมูลสถิติเนื้อหาได้</p>
+                  </div>
+                )}
               </div>
             )}
 
