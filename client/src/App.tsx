@@ -22,18 +22,25 @@ import MemberProfile from "./pages/MemberProfile";
 import VipPage from "./pages/VipPage";
 import CoinsPage from "./pages/CoinsPage";
 import EbookLibrary from "./pages/EbookLibrary";
+import Analytics from "./pages/Analytics";
+
+import { usePageTracker } from "./hooks/usePageTracker";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isReader = location.startsWith("/read/");
   const isAdmin = location.startsWith("/admin");
   const isCeo = location.startsWith("/ceo");
+  const isAnalytics = location.startsWith("/analytics");
+
+  // Track all pageviews
+  usePageTracker();
 
   return (
     <>
-      {!isReader && !isAdmin && !isCeo && <Navbar />}
+      {!isReader && !isAdmin && !isCeo && !isAnalytics && <Navbar />}
       {children}
-      {!isReader && !isAdmin && !isCeo && <Footer />}
+      {!isReader && !isAdmin && !isCeo && !isAnalytics && <Footer />}
     </>
   );
 }
@@ -68,6 +75,9 @@ function Router() {
         {/* CEO */}
         <Route path="/ceo" component={CeoDashboard} />
         <Route path="/ceo/:rest*" component={CeoDashboard} />
+
+        {/* Analytics */}
+        <Route path="/analytics" component={Analytics} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

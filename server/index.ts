@@ -1005,6 +1005,139 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ============ ANALYTICS TRACKING ============
+  // Create page_views table if not exists
+  try {
+    await pool.execute(`CREATE TABLE IF NOT EXISTS page_views (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      sessionId VARCHAR(64),
+      ip VARCHAR(45),
+      country VARCHAR(100) DEFAULT '',
+      city VARCHAR(100) DEFAULT '',
+      page VARCHAR(500),
+      referrer VARCHAR(500) DEFAULT '',
+      userAgent VARCHAR(500) DEFAULT '',
+      novelId INT DEFAULT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_created (createdAt),
+      INDEX idx_page (page),
+      INDEX idx_session (sessionId),
+      INDEX idx_novel (novelId)
+    )`);
+  } catch (e) { console.log('page_views table may already exist'); }
+
+  // Track pageview (public, no auth required)
+  app.post("/api/analytics/track", async (req, res) => {
+    try {
+      const { page, referrer, sessionId, novelId } = req.body;
+      const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '';
+      const realIp = typeof ip === 'string' ? ip.split(',')[0].trim() : (Array.isArray(ip) ? ip[0] : '');
+      const userAgent = req.headers['user-agent'] || '';
+
+      // Get country from IP using free API (best effort)
+      let country = '';
+      let city = '';
+      try {
+        const geoRes = await fetch(`http://ip-api.com/json/${realIp}?fields=country,city`);
+        if (geoRes.ok) {
+          const geo = await geoRes.json();
+          country = geo.country || '';
+          city = geo.city || '';
+        }
+      } catch { /* ignore geo errors */ }
+
+      await pool.execute(
+        'INSERT INTO page_views (sessionId, ip, country, city, page, referrer, userAgent, novelId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [sessionId || '', realIp, country, city, page || '/', referrer || '', userAgent.substring(0, 500), novelId || null]
+      );
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Public stats (for the stats bar on homepage)
+  app.get("/api/public/stats", async (_req, res) => {
+    try {
+      const [novels]: any = await pool.execute('SELECT COUNT(*) as c FROM novels');
+      const [users]: any = await pool.execute('SELECT COUNT(*) as c FROM users');
+      const [views]: any = await pool.execute('SELECT SUM(viewCount) as c FROM novels');
+      const [chapters]: any = await pool.execute('SELECT COUNT(*) as c FROM chapters');
+      res.json({
+        totalNovels: novels[0].c || 0,
+        totalUsers: users[0].c || 0,
+        totalViews: views[0].c || 0,
+        totalChapters: chapters[0].c || 0
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Analytics dashboard data (public)
+  app.get("/api/analytics/dashboard", async (req, res) => {
+    try {
+      const { days } = req.query;
+      const daysNum = parseInt(days as string) || 30;
+
+      // Total pageviews
+      const [totalPV]: any = await pool.execute(
+        'SELECT COUNT(*) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY)', [daysNum]
+      );
+      // Unique visitors (by sessionId)
+      const [uniqueVisitors]: any = await pool.execute(
+        'SELECT COUNT(DISTINCT sessionId) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND sessionId != ""', [daysNum]
+      );
+      // Unique IPs
+      const [uniqueIPs]: any = await pool.execute(
+        'SELECT COUNT(DISTINCT ip) as total FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND ip != ""', [daysNum]
+      );
+      // Pageviews by day
+      const [pvByDay]: any = await pool.execute(
+        'SELECT DATE(createdAt) as date, COUNT(*) as views, COUNT(DISTINCT sessionId) as visitors FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(createdAt) ORDER BY date', [daysNum]
+      );
+      // Top pages
+      const [topPages]: any = await pool.execute(
+        'SELECT page, COUNT(*) as views, COUNT(DISTINCT sessionId) as visitors FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY page ORDER BY views DESC LIMIT 20', [daysNum]
+      );
+      // Top countries
+      const [topCountries]: any = await pool.execute(
+        'SELECT country, COUNT(*) as views, COUNT(DISTINCT ip) as uniqueIPs FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND country != "" GROUP BY country ORDER BY views DESC LIMIT 20', [daysNum]
+      );
+      // Top novels (by novelId in page_views)
+      const [topNovels]: any = await pool.execute(
+        `SELECT pv.novelId, n.title, n.category, n.coverUrl, COUNT(*) as views, COUNT(DISTINCT pv.sessionId) as visitors
+         FROM page_views pv
+         LEFT JOIN novels n ON pv.novelId = n.id
+         WHERE pv.createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) AND pv.novelId IS NOT NULL
+         GROUP BY pv.novelId, n.title, n.category, n.coverUrl
+         ORDER BY views DESC LIMIT 100`, [daysNum]
+      );
+      // Top novels by viewCount (from novels table)
+      const [topNovelsByViewCount]: any = await pool.execute(
+        'SELECT id, title, category, coverUrl, viewCount, likeCount FROM novels ORDER BY viewCount DESC LIMIT 100'
+      );
+      // Hourly distribution
+      const [hourlyDist]: any = await pool.execute(
+        'SELECT HOUR(createdAt) as hour, COUNT(*) as views FROM page_views WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY HOUR(createdAt) ORDER BY hour', [daysNum]
+      );
+      // Recent pageviews
+      const [recentPV]: any = await pool.execute(
+        'SELECT page, ip, country, city, createdAt, userAgent FROM page_views ORDER BY createdAt DESC LIMIT 50'
+      );
+
+      res.json({
+        totalPageviews: totalPV[0].total || 0,
+        uniqueVisitors: uniqueVisitors[0].total || 0,
+        uniqueIPs: uniqueIPs[0].total || 0,
+        pageviewsByDay: pvByDay,
+        topPages,
+        topCountries,
+        topNovels,
+        topNovelsByViewCount,
+        hourlyDistribution: hourlyDist,
+        recentPageviews: recentPV,
+        startDate: '2026-03-28'
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // ============ ADS.TXT PUBLIC ROUTE ============
   app.get("/ads.txt", async (_req, res) => {
     try {
@@ -1038,7 +1171,7 @@ async function startServer() {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
   server.listen(port, () => {
     console.log(`NiYAIFREE Server running on http://localhost:${port}/`);
   });

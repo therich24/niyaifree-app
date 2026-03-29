@@ -99,6 +99,11 @@ export const api = {
   getJobs: () => request("/admin/jobs"),
   adjustUserCoins: (id: number, body: any) => request(`/admin/users/${id}/coins`, { method: "POST", body: JSON.stringify(body) }),
 
+  // Analytics
+  trackPageview: (body: any) => request("/analytics/track", { method: "POST", body: JSON.stringify(body) }),
+  getPublicStats: () => request("/public/stats"),
+  getAnalyticsDashboard: (days?: number) => request(`/analytics/dashboard?days=${days || 30}`),
+
   // CEO
   ceoLogin: (body: any) => request("/ceo/login", { method: "POST", body: JSON.stringify(body) }),
   ceoStats: () => request("/ceo/stats"),

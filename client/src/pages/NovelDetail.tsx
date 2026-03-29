@@ -153,7 +153,7 @@ export default function NovelDetail() {
                 <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" /> {novel.totalChapters} ตอน</span>
                 <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {novel.viewCount?.toLocaleString()} อ่าน</span>
                 <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {novel.likeCount?.toLocaleString()} ชอบ</span>
-                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {novel.totalWords?.toLocaleString()} คำ</span>
+                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {novel.totalWords?.toLocaleString()} ตัวอักษร</span>
                 {novel.ageRating && novel.ageRating !== "ทั่วไป" && (
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-semibold">{novel.ageRating}</span>
                 )}
@@ -207,7 +207,7 @@ export default function NovelDetail() {
                     </span>
                     <div>
                       <p className="text-sm font-medium text-slate-900">{ch.title || `ตอนที่ ${ch.chapterNumber}`}</p>
-                      <p className="text-xs text-slate-400">{ch.wordCount?.toLocaleString()} คำ</p>
+                      <p className="text-xs text-slate-400">{ch.wordCount?.toLocaleString()} ตัวอักษร</p>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />

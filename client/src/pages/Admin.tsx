@@ -395,7 +395,7 @@ function GenerateTab() {
             <div className="mt-2 space-y-1">
               {result.results?.map((r: any, i: number) => (
                 <p key={i} className="text-xs text-green-700">
-                  {r.error ? `Error: ${r.error}` : `ตอนที่ ${r.chapterNumber}: ${r.title} (${r.wordCount} คำ)`}
+                  {r.error ? `Error: ${r.error}` : `ตอนที่ ${r.chapterNumber}: ${r.title} (${r.wordCount?.toLocaleString()} ตัวอักษร)`}
                 </p>
               ))}
             </div>

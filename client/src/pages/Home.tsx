@@ -34,16 +34,19 @@ export default function Home() {
   const [novels, setNovels] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [publicStats, setPublicStats] = useState<{ totalNovels: number; totalUsers: number; totalViews: number; totalChapters: number } | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [novelsRes, trendingRes] = await Promise.all([
+        const [novelsRes, trendingRes, statsRes] = await Promise.all([
           api.getNovels({ limit: "12", sort: "latest" }),
           api.getNovels({ limit: "8", sort: "popular" }),
+          api.getPublicStats().catch(() => null),
         ]);
         setNovels(novelsRes.novels || []);
         setTrending(trendingRes.novels || []);
+        if (statsRes) setPublicStats(statsRes);
       } catch (e) {
         toast.error("ไม่สามารถโหลดข้อมูลได้");
       } finally {
@@ -318,10 +321,10 @@ export default function Home() {
         <div className="container">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
             {[
-              { icon: BookOpen, label: "นิยายทั้งหมด", value: "1,000+", color: "text-primary bg-primary/10" },
-              { icon: Users, label: "สมาชิก", value: "5,000+", color: "text-emerald-600 bg-emerald-50" },
-              { icon: TrendingUp, label: "ยอดอ่าน/วัน", value: "10,000+", color: "text-blue-600 bg-blue-50" },
-              { icon: Star, label: "คะแนนเฉลี่ย", value: "4.8/5", color: "text-amber-600 bg-amber-50" },
+              { icon: BookOpen, label: "นิยายทั้งหมด", value: publicStats ? publicStats.totalNovels.toLocaleString() + " เรื่อง" : "1,000+ เรื่อง", color: "text-primary bg-primary/10" },
+              { icon: Users, label: "สมาชิก", value: publicStats ? publicStats.totalUsers.toLocaleString() + " คน" : "5,000+ คน", color: "text-emerald-600 bg-emerald-50" },
+              { icon: TrendingUp, label: "ยอดอ่านทั้งหมด", value: publicStats ? publicStats.totalViews.toLocaleString() : "10,000+", color: "text-blue-600 bg-blue-50" },
+              { icon: Star, label: "ฟรี 100%", value: "ฟรี", color: "text-amber-600 bg-amber-50" },
             ].map((stat) => (
               <div key={stat.label} className="text-center p-5 rounded-xl bg-slate-50 hover:shadow-md transition-all border border-transparent hover:border-slate-100">
                 <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center mx-auto mb-3`}>

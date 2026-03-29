@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   Search, User, BookOpen, Menu, X, ChevronDown, Crown,
-  Settings, LogOut, LayoutDashboard, Bookmark, Coins, Heart, Phone, HelpCircle, Sparkles
+  Settings, LogOut, LayoutDashboard, Bookmark, Coins, Heart, Phone, HelpCircle, Sparkles, BarChart3
 } from "lucide-react";
 
 export default function Navbar() {
@@ -39,6 +39,7 @@ export default function Navbar() {
     { href: "/genre/โรแมนติก", label: "โรแมนติก" },
     { href: "/genre/แอ็คชั่น", label: "แอ็คชั่น" },
     { href: "/vip", label: "VIP", special: true },
+    { href: "/analytics", label: "สถิติ" },
   ];
 
   return (
@@ -166,9 +167,14 @@ export default function Navbar() {
                             <Coins className="w-4 h-4 text-slate-400" /> ซื้อ Coins
                           </Link>
                           {(user.role === "admin" || user.role === "ceo") && (
-                            <Link href="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 no-underline" onClick={() => setUserMenuOpen(false)}>
-                              <Settings className="w-4 h-4 text-slate-400" /> จัดการระบบ
-                            </Link>
+                            <>
+                              <Link href="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 no-underline" onClick={() => setUserMenuOpen(false)}>
+                                <Settings className="w-4 h-4 text-slate-400" /> จัดการระบบ
+                              </Link>
+                              <Link href="/analytics" className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 no-underline" onClick={() => setUserMenuOpen(false)}>
+                                <BarChart3 className="w-4 h-4 text-blue-400" /> สถิติการเข้าชม
+                              </Link>
+                            </>
                           )}
                         </div>
                         <div className="border-t border-slate-100 pt-1">

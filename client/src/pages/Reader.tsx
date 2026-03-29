@@ -109,7 +109,7 @@ export default function Reader() {
       {/* Top nav */}
       <div className="sticky top-1 z-40 backdrop-blur-md border-b" style={{ background: isDark ? "rgba(26,26,26,0.95)" : "rgba(255,255,255,0.95)", borderColor: isDark ? "#333" : "#e5e5e5" }}>
         <div className="container flex items-center justify-between h-12">
-          <Link href={`/novel/${chapter.novelId}`} className="flex items-center gap-1 text-sm text-primary no-underline hover:underline">
+          <Link href={`/novel/${novelId}`} className="flex items-center gap-1 text-sm text-primary no-underline hover:underline">
             <ArrowLeft className="w-4 h-4" /> กลับ
           </Link>
           <span className="text-sm font-medium font-[Kanit] truncate max-w-[200px]">
