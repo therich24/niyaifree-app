@@ -20,3 +20,24 @@
 - [ ] Each chapter on new section
 - [ ] Copyright warning footer on every page
 - [ ] Thai font support (Sarabun)
+
+# New Tasks (2026-03-29)
+
+## Phase 1: กราฟแท่งรายชั่วโมง
+- [ ] แก้ backend /api/analytics/dashboard ให้ส่ง hourly data
+- [ ] แก้ Analytics.tsx ให้แสดงกราฟแท่งรายชั่วโมง (bar chart)
+
+## Phase 2: ระบบนิยายแนะนำ (Featured)
+- [ ] เพิ่ม toggle isFeatured ใน Admin Panel
+- [ ] แสดง Featured novels บนหน้าแรก
+
+## Phase 3: ค้นหาขั้นสูง
+- [ ] เพิ่ม filter หมวดหมู่, สถานะ, จำนวนตอน, Age Rating ในหน้า Search
+
+## Phase 4: สร้างปกนิยาย
+- [ ] อ่าน Cover Skill
+- [ ] สร้างปกด้วย Banana Pro สำหรับนิยายที่ยังไม่มีปก
+
+## Phase 5: แต่งนิยายให้จบ
+- [ ] ตรวจสอบนิยายที่ยังไม่จบ
+- [ ] ใช้ Gemini API แต่งนิยายให้ครบ

@@ -55,6 +55,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [novels, setNovels] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
+  const [featured, setFeatured] = useState<any[]>([]);
   const [categoryNovels, setCategoryNovels] = useState<Record<string, any[]>>({});
   const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -63,13 +64,15 @@ export default function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const [novelsRes, trendingRes, statsRes] = await Promise.all([
+        const [novelsRes, trendingRes, featuredRes, statsRes] = await Promise.all([
           api.getNovels({ limit: "12", sort: "latest" }),
           api.getNovels({ limit: "10", sort: "popular" }),
+          api.getNovels({ limit: "10", featured: "true" }),
           api.getPublicStats().catch(() => null),
         ]);
         setNovels(novelsRes.novels || []);
         setTrending(trendingRes.novels || []);
+        setFeatured(featuredRes.novels || []);
         if (statsRes) setPublicStats(statsRes);
 
         // Load novels per category (6 each)
@@ -192,6 +195,33 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ===== FEATURED / นิยายแนะนำ ===== */}
+      {featured.length > 0 && (
+        <section className="py-12 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50">
+          <div className="container">
+            <div className="section-header">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <Star className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold font-[Kanit] text-slate-900">นิยายแนะนำ</h2>
+                  <p className="text-sm text-slate-500">คัดสรรโดยทีมงาน</p>
+                </div>
+              </div>
+              <Link href="/genre/featured" className="text-primary text-sm font-semibold flex items-center gap-1 no-underline hover:underline">
+                ดูทั้งหมด <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+              {featured.map((novel) => (
+                <BookCard key={novel.id} novel={novel} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ===== TRENDING TOP 10 ===== */}
       <section className="py-12 bg-slate-50">

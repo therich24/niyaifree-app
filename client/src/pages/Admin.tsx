@@ -159,7 +159,7 @@ function NovelsTab() {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editNovel, setEditNovel] = useState<any>(null);
-  const [form, setForm] = useState({ title: "", category: "Romance", description: "", coverUrl: "", ageRating: "ทั่วไป", author: "NiYAIFREE", status: "draft" });
+  const [form, setForm] = useState({ title: "", category: "Romance", description: "", coverUrl: "", ageRating: "ทั่วไป", author: "NiYAIFREE", status: "draft", isFeatured: false });
 
   const load = () => api.getNovels({ search, limit: "50" }).then(d => setNovels(d.novels)).catch(() => toast.error("ไม่สามารถโหลดรายการนิยายได้"));
   useEffect(() => { load(); }, [search]);
@@ -188,7 +188,7 @@ function NovelsTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold" style={{ fontFamily: "Kanit" }}>จัดการนิยาย</h1>
-        <Button onClick={() => { setShowAdd(true); setEditNovel(null); setForm({ title: "", category: "Romance", description: "", coverUrl: "", ageRating: "ทั่วไป", author: "NiYAIFREE", status: "draft" }); }} className="text-white" style={{ background: "oklch(0.40 0.12 155)" }}>
+        <Button onClick={() => { setShowAdd(true); setEditNovel(null); setForm({ title: "", category: "Romance", description: "", coverUrl: "", ageRating: "ทั่วไป", author: "NiYAIFREE", status: "draft", isFeatured: false }); }} className="text-white" style={{ background: "oklch(0.40 0.12 155)" }}>
           <Plus className="w-4 h-4 mr-1" /> เพิ่มนิยาย
         </Button>
       </div>
@@ -242,6 +242,10 @@ function NovelsTab() {
                 <option value="published">เผยแพร่</option>
               </select>
             </div>
+            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <input type="checkbox" id="isFeatured" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="w-4 h-4 accent-amber-500" />
+              <label htmlFor="isFeatured" className="text-sm font-medium text-amber-800 cursor-pointer flex items-center gap-1.5">⭐ นิยายแนะนำ (ปักหมุดหน้าแรก)</label>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setShowAdd(false); setEditNovel(null); }}>ยกเลิก</Button>
               <Button onClick={handleSave} className="text-white" style={{ background: "oklch(0.40 0.12 155)" }}>บันทึก</Button>
@@ -259,10 +263,10 @@ function NovelsTab() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate" style={{ fontFamily: "Kanit" }}>{n.title}</p>
-              <p className="text-xs text-muted-foreground">{n.category} · {n.totalChapters} ตอน · {n.viewCount} อ่าน · {n.status}</p>
+              <p className="text-xs text-muted-foreground">{n.isFeatured ? '⭐ ' : ''}{n.category} · {n.totalChapters} ตอน · {n.viewCount} อ่าน · {n.status}</p>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => { setEditNovel(n); setForm({ title: n.title, category: n.category, description: n.description || "", coverUrl: n.coverUrl || "", ageRating: n.ageRating || "ทั่วไป", author: n.author || "NiYAIFREE", status: n.status }); }} className="p-2 rounded-lg hover:bg-muted"><Edit className="w-4 h-4" /></button>
+              <button onClick={() => { setEditNovel(n); setForm({ title: n.title, category: n.category, description: n.description || "", coverUrl: n.coverUrl || "", ageRating: n.ageRating || "ทั่วไป", author: n.author || "NiYAIFREE", status: n.status, isFeatured: !!n.isFeatured }); }} className="p-2 rounded-lg hover:bg-muted"><Edit className="w-4 h-4" /></button>
               <button onClick={() => handleDelete(n.id)} className="p-2 rounded-lg hover:bg-red-50 text-destructive"><Trash2 className="w-4 h-4" /></button>
             </div>
           </div>

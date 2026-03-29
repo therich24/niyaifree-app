@@ -53,14 +53,13 @@ export default function BookCard({ novel, size = "md" }: BookCardProps) {
           )}
 
           {/* Status Badge */}
-          {novel.status === "writing" && (
-            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
-              กำลังเขียน
-            </div>
-          )}
-          {novel.status === "completed" && (
+          {novel.status === "completed" && novel.totalChapters >= 50 ? (
             <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
               จบแล้ว
+            </div>
+          ) : (
+            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10">
+              อยู่ระหว่างเขียน
             </div>
           )}
           {novel.isFeatured && (

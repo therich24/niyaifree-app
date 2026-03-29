@@ -341,11 +341,71 @@ export default function Analytics() {
             {/* Tab Content */}
             {activeTab === "overview" && (
               <div className="space-y-6">
-                {/* Pageviews Chart */}
+                {/* Pageviews Chart — Hourly Bar Chart */}
                 <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold font-[Kanit] text-slate-900 flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-blue-500" />
+                      Pageviews รายชั่วโมง
+                    </h3>
+                    <span className="text-xs text-slate-400">{rangeDesc}</span>
+                  </div>
+                  {(() => {
+                    // Build full 24-hour array
+                    const hourMap: Record<number, number> = {};
+                    (data.hourlyDistribution || []).forEach(h => { hourMap[h.hour] = h.views; });
+                    const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, views: hourMap[i] || 0 }));
+                    const maxViews = Math.max(...hours.map(h => h.views), 1);
+                    const totalHourlyViews = hours.reduce((s, h) => s + h.views, 0);
+
+                    return totalHourlyViews > 0 ? (
+                      <div className="space-y-2">
+                        {/* Bar chart */}
+                        <div className="flex items-end gap-[3px] h-48">
+                          {hours.map((h) => (
+                            <div key={h.hour} className="flex-1 flex flex-col items-center group relative">
+                              {/* Tooltip */}
+                              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg pointer-events-none">
+                                <span className="font-semibold">{String(h.hour).padStart(2, '0')}:00</span> — {h.views.toLocaleString()} views
+                              </div>
+                              {/* Bar */}
+                              <div
+                                className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-500 cursor-pointer"
+                                style={{ height: `${(h.views / maxViews) * 100}%`, minHeight: h.views > 0 ? '4px' : '1px' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {/* X-axis labels */}
+                        <div className="flex gap-[3px]">
+                          {hours.map((h) => (
+                            <div key={h.hour} className="flex-1 text-center">
+                              <span className={`text-[9px] ${h.hour % 3 === 0 ? 'text-slate-500 font-medium' : 'text-transparent'}`}>
+                                {String(h.hour).padStart(2, '0')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Summary */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                          <span className="text-xs text-slate-400">รวมทั้งหมด: <span className="font-semibold text-slate-600">{totalHourlyViews.toLocaleString()}</span> views</span>
+                          <span className="text-xs text-slate-400">เฉลี่ย: <span className="font-semibold text-slate-600">{Math.round(totalHourlyViews / 24).toLocaleString()}</span> views/ชม.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-slate-400">
+                        <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">ยังไม่มีข้อมูล — เริ่มนับตั้งแต่ 28 มี.ค. 2569</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Pageviews by Day — keep as secondary chart */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold font-[Kanit] text-slate-900 flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-indigo-500" />
                       Pageviews รายวัน
                     </h3>
                     <span className="text-xs text-slate-400">{rangeDesc}</span>
@@ -361,7 +421,7 @@ export default function Analytics() {
                                 {formatThaiDateShort(d.date)} — {d.views} views
                               </div>
                               <div
-                                className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-500 min-w-[4px]"
+                                className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-sm transition-all duration-300 hover:from-indigo-600 hover:to-indigo-500 min-w-[4px]"
                                 style={{ height: `${(d.views / maxViews) * 100}%`, minHeight: d.views > 0 ? "4px" : "0" }}
                               />
                             </div>
@@ -376,7 +436,7 @@ export default function Analytics() {
                   ) : (
                     <div className="text-center py-12 text-slate-400">
                       <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">ยังไม่มีข้อมูล — เริ่มนับตั้งแต่ 28 มี.ค. 2569</p>
+                      <p className="text-sm">ยังไม่มีข้อมูล</p>
                     </div>
                   )}
                 </div>
