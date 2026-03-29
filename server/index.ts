@@ -267,9 +267,13 @@ async function startServer() {
   // NOTE: novels table uses snake_case: cover_url, view_count, like_count, total_chapters, word_count, created_at, updated_at, is_featured, age_rating, seo_title, seo_description
   app.get("/api/novels", async (req, res) => {
     try {
-      const { category, status, featured, search, sort, limit: lim, offset: off } = req.query;
+      const { category, status, featured, search, sort, limit: lim, offset: off, all } = req.query;
       let sql = `SELECT id, title, slug, author, category, description, cover_url as coverUrl, age_rating as ageRating, status, total_chapters as totalChapters, word_count as totalWords, view_count as viewCount, like_count as likeCount, is_featured as isFeatured, created_at as createdAt FROM novels WHERE 1=1`;
       const params: any[] = [];
+      // Default: show only completed novels with cover (unless admin passes all=true or specific status)
+      if (all !== "true" && !status) {
+        sql += " AND status='completed' AND cover_url IS NOT NULL AND cover_url != ''";
+      }
       if (category) { sql += " AND category=?"; params.push(category); }
       if (status) { sql += " AND status=?"; params.push(status); }
       if (featured === "true") { sql += " AND is_featured=1"; }
@@ -280,7 +284,14 @@ async function startServer() {
       const offsetNum = parseInt(off as string) || 0;
       sql += ` LIMIT ${limitNum} OFFSET ${offsetNum}`;
       const [rows] = await pool.execute(sql, params);
-      const [countResult]: any = await pool.execute("SELECT COUNT(*) as total FROM novels" + (category ? " WHERE category=?" : ""), category ? [category as string] : []);
+      // Count query should also respect the same filter
+      let countSql = "SELECT COUNT(*) as total FROM novels WHERE 1=1";
+      const countParams: any[] = [];
+      if (all !== "true" && !status) {
+        countSql += " AND status='completed' AND cover_url IS NOT NULL AND cover_url != ''";
+      }
+      if (category) { countSql += " AND category=?"; countParams.push(category); }
+      const [countResult]: any = await pool.execute(countSql, countParams);
       res.json({ novels: rows, total: countResult[0].total });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
